@@ -1,0 +1,10 @@
+CompileFlags:
+  Add: [-Wall, -Wextra, -pedantic, -Werror, -std=c++20]
+  Remove: [-Wno-everything]
+Completion:
+  HeaderInsertion: Never
+
+If:
+  PathMatch: [^third_party/.*]
+Diagnostics:
+  Suppress: ["*"]

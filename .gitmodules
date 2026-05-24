@@ -1,0 +1,29 @@
+[submodule "third_party/mimalloc"]
+	path = third_party/mimalloc
+	url = https://github.com/microsoft/mimalloc.git
+    branch = dev3
+[submodule "third_party/fmt"]
+	path = third_party/fmt
+	url = git@github.com:fmtlib/fmt.git
+[submodule "third_party/cmake_toolchain"]
+	path = third_party/cmake_toolchain
+	url = git@github.com:MarkSchofield/WindowsToolchain.git
+
+[submodule "third_party/volk"]
+	path = third_party/volk
+	url = git@github.com:zeux/volk.git
+[submodule "third_party/benchmark"]
+	path = third_party/benchmark
+	url = git@github.com:google/benchmark.git
+[submodule "third_party/gtest"]
+	path = third_party/gtest
+	url = git@github.com:google/googletest.git
+[submodule "third_party/MCMPQueue"]
+	path = third_party/MCMPQueue
+	url = git@github.com:cameron314/concurrentqueue.git
+[submodule "third_party/glm"]
+	path = third_party/glm
+	url = git@github.com:g-truc/glm.git
+[submodule "third_party/cgltf"]
+	path = third_party/cgltf
+	url = git@github.com:jkuhlmann/cgltf.git
