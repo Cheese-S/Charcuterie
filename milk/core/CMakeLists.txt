@@ -86,77 +86,77 @@ target_link_libraries(milk_core PUBLIC glm)
 
 add_test(MemoryTest 
          SOURCES test/MemoryTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(ConditionTest 
          SOURCES test/concurrency/ConditionTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(JobQueueTest 
          SOURCES test/concurrency/JobQueueTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(JobSystemTest 
          SOURCES test/concurrency/JobSystemTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(ParkingLotTest 
          SOURCES test/concurrency/ParkingLotTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(SharedMutexTest 
          SOURCES test/concurrency/SharedMutexTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(WaitGroupTest 
          SOURCES test/concurrency/WaitGroupTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(WordLockTest 
          SOURCES test/concurrency/WordLockTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(FixedSizeObjectPoolTest 
          SOURCES test/container/FixedSizeObjectPoolTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(LockFreeObjectPoolTest 
          SOURCES test/container/LockFreeObjectPoolTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(StringTest 
          SOURCES test/container/StringTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(VectorTest 
          SOURCES test/container/VectorTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(FileTest 
          SOURCES test/filesystem/FileTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(PathTest 
          SOURCES test/filesystem/PathTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 
 add_test(LogTest 
          SOURCES test/log/LogTest.cpp 
-         INCLUDES include interface
-         LIBS milk_core)
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
 # END_GEN
 

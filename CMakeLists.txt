@@ -94,6 +94,9 @@ endif()
 
 add_subdirectory(third_party)
 
+# test
+add_subdirectory(milk/test)
+
 # libs
 add_subdirectory(milk/core)
 add_subdirectory(milk/render)

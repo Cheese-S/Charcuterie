@@ -197,8 +197,8 @@ def genTest(dst: list[str], dir: Path, includeLibs: list[str]):
         dst.append(f"""
 add_test({testExe} 
          SOURCES {file} 
-         INCLUDES include interface
-         LIBS {includeLibsStr})
+         INCLUDES include interface milk
+         LIBS {includeLibsStr} milk_test)
 """)
 
 
