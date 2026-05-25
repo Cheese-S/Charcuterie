@@ -1,12 +1,12 @@
 #include <cctype>
 #include <chrono>
-
-#include <core/log/ILog.h>
-#include <core/log/Log.h>
-#include <core/log/IFormatter.h>
-#include <core/IResult.h>
 #include <core/IMacro.h>
+#include <core/IResult.h>
+#include <core/log/AnsiColor.h>
+#include <core/log/IFormatter.h>
+#include <core/log/ILog.h>
 #include <core/log/ISink.h>
+#include <core/log/Log.h>
 
 namespace mk::log::details
 {
@@ -35,12 +35,17 @@ void rawLogImpl(LogLevel level, std::source_location sourceLocation, const char*
         break;
     }
 
+    const char* color = toEscapeCode(toAnsiColor(level));
+    const char* reset = toEscapeCode(AnsiColor::eReset);
+
     std::fprintf(stream,
-                 "[raw] %c: %s [%s:%u]\n",
+                 "%s[raw] %c: %s [%s:%u]%s\n",
+                 color,
                  levelChar,
                  view,
                  sourceLocation.file_name(),
-                 static_cast<u32>(sourceLocation.line()));
+                 static_cast<u32>(sourceLocation.line()),
+                 reset);
     std::fflush(stream);
 }
 }; // namespace mk::log::details

@@ -25,18 +25,15 @@ void rawLog(LogLevel                        level,
 }
 
 #define MK_RAW_LOG_INFO(fmt, ...) \
-    rawLog(mk::log::LogLevel::eInfo, std::source_location::current(), fmt, __VA_ARGS__);
+    rawLog(mk::log::LogLevel::eInfo, std::source_location::current(), fmt, __VA_ARGS__)
 
 #define MK_RAW_LOG_DEBUG(fmt, ...) \
-    rawLog(mk::log::LogLevel::eDebug, std::source_location::current(), fmt, __VA_ARGS__);
+    rawLog(mk::log::LogLevel::eDebug, std::source_location::current(), fmt, __VA_ARGS__)
 
-#define MK_RAW_LOG_WARN(fmt, ...)           \
-    rawLog(mk::log::LogLevel::eWarning,     \
-           std::source_location::current(), \
-           fmt,                             \
-           __VA_ARGS__);
+#define MK_RAW_LOG_WARN(fmt, ...) \
+    rawLog(mk::log::LogLevel::eWarning, std::source_location::current(), fmt, __VA_ARGS__)
 
 #define MK_RAW_LOG_ERROR(fmt, ...) \
-    rawLog(mk::log::LogLevel::eError, std::source_location::current(), fmt, __VA_ARGS__);
+    rawLog(mk::log::LogLevel::eError, std::source_location::current(), fmt, __VA_ARGS__)
 
 } // namespace mk::log
