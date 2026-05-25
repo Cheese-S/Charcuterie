@@ -29,6 +29,7 @@ add_library(milk_core
 
     # BEGIN_FILE_GEN src/log
 
+	src/log/AnsiColor.cpp
 	src/log/Formatter.cpp
 	src/log/Log.cpp
 	src/log/Sink.cpp
