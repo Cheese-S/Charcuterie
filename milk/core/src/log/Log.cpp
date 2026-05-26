@@ -152,7 +152,6 @@ Result LogSystem::makeLogSystem(LogSystemConfig config, UniquePtr<LogSystem>& ou
                                       formatters,
                                       config.sinks,
                                       config.pattern);
-    //
     return Result::eOk;
 }
 

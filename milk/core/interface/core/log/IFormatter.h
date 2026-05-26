@@ -1,6 +1,6 @@
 #pragma once
 #include <core/container/IString.h>
-#include <core/log/Log.h>
+#include <core/log/ILog.h>
 #include <fmt/format.h>
 
 namespace mk::log

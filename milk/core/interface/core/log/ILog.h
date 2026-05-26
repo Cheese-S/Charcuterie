@@ -22,6 +22,19 @@ using ISinkPtr = UniquePtr<ISink>;
 using LogCategory = StringView;
 using MemoryBuffer = fmt::basic_memory_buffer<char, 1024>;
 
+struct LogContext
+{
+    u64         count;
+    StringView  userMsg;
+    LogCategory category;
+    StringView  filename;
+    LogLevel    level;
+    u8          tid;
+    u16         ms;
+    u16         line;
+    std::tm     tm;
+};
+
 // Only support ASCII flags
 struct FlagFormatterPair
 {
@@ -89,10 +102,7 @@ void LogSystem::log(LogCategory                     category,
 {
     MemoryBuffer formattedMsg;
     fmt::vformat_to(fmt::appender(formattedMsg), fmt, fmt::make_format_args(args...));
-    logImpl(category,
-            level,
-            sourceLocation,
-            StringView(formattedMsg.begin(), formattedMsg.size()));
+    logImpl(category, level, sourceLocation, StringView(formattedMsg.begin(), formattedMsg.size()));
 }
 
 #define MK_LOG_INFO(fmt, ...)                                                  \

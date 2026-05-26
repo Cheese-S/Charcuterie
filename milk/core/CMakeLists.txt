@@ -62,7 +62,7 @@ target_include_directories(milk_core PUBLIC
     interface
 )
 
-target_include_directories(milk_core PUBLIC
+target_include_directories(milk_core PRIVATE
     include
 )
 
