@@ -110,8 +110,7 @@ struct IsEnumType
 template<typename T>
 struct IsBitwiseConstrutable
 {
-    static_assert(!IsReferenceType<T>::value,
-                  "IsBitwiseConstrutable does not take reference type");
+    static_assert(!IsReferenceType<T>::value, "IsBitwiseConstrutable does not take reference type");
 
     enum
     {
@@ -149,13 +148,13 @@ struct IsZeroInitializable<std::unique_ptr<T>>
 template<typename T>
 struct TypeCompatibleBytes
 {
-    alignas(T) std::byte bytes[sizeof(T)];
+    alignas(T) byte bytes[sizeof(T)];
 };
 
 template<typename T, usize N>
 struct TypeCompatibleBytesArray
 {
-    alignas(T) std::byte bytes[sizeof(T) * N];
+    alignas(T) byte bytes[sizeof(T) * N];
 };
 // NOLINTEND
 } // namespace mk

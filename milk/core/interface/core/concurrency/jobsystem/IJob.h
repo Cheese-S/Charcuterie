@@ -16,17 +16,17 @@ private:
 
 struct SmallJobStorage
 {
-    alignas(64) std::byte bytes[64];
+    alignas(64) byte bytes[64];
 };
 
 struct MediumJobStorage
 {
-    alignas(64) std::byte bytes[128];
+    alignas(64) byte bytes[128];
 };
 
 struct LargeJobStorage
 {
-    alignas(64) std::byte bytes[256];
+    alignas(64) byte bytes[256];
 };
 
 }; // namespace mk::cc

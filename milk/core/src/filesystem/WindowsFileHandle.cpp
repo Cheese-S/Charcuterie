@@ -18,7 +18,7 @@ WindowsFileHandle::~WindowsFileHandle()
     CloseHandle(handle_);
 }
 
-Result WindowsFileHandle::read(Vector<std::byte>& dst)
+Result WindowsFileHandle::read(Vector<byte>& dst)
 {
     dst.resize(size_);
     return read(dst.data(), dst.size());

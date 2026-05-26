@@ -44,14 +44,13 @@ JobSystem<PoolSizeConfig>::JobSystem(JobSystemConfig config):
     // TODO(Cheese_S): Should we init worker ctx for main thread so it can execute job
     // while waiting?
     u8 numTotalThreads = config.numBackgorundThreads + config.numForegroundThreads;
-    if (numTotalThreads >= std::thread::hardware_concurrency())
+    if (numTotalThreads > std::thread::hardware_concurrency())
     {
-        MK_CAT_LOG_WARN(
-            JobSystem,
-            "Allocating more logic threads than the hardware supports. This can cause "
-            "performance drop. Allocating: %lu, hardware supports: %lu",
-            numTotalThreads,
-            std::thread::hardware_concurrency());
+        MK_CAT_LOG_WARN(JobSystem,
+                        "Allocating more logic threads than the hardware supports. This can cause "
+                        "performance drop. Allocating: {}, hardware supports: {}",
+                        numTotalThreads,
+                        std::thread::hardware_concurrency());
     }
 
     // init job handles
@@ -67,11 +66,9 @@ JobSystem<PoolSizeConfig>::JobSystem(JobSystemConfig config):
 
     // init group contexts
     {
-        groupCtxs_[JobPriorityGroup::eBackground].waitGroup.init(
-            config.numBackgorundThreads);
+        groupCtxs_[JobPriorityGroup::eBackground].waitGroup.init(config.numBackgorundThreads);
 
-        groupCtxs_[JobPriorityGroup::eForeground].waitGroup.init(
-            config.numForegroundThreads);
+        groupCtxs_[JobPriorityGroup::eForeground].waitGroup.init(config.numForegroundThreads);
     }
 
     // init worker contexts
@@ -82,16 +79,14 @@ JobSystem<PoolSizeConfig>::JobSystem(JobSystemConfig config):
             { workerCtxs_.begin(), workerCtxs_.begin() + config.numForegroundThreads },
             groupCtxs_[JobPriorityGroup::eForeground]);
 
-        initWorkerContexts(
-            { workerCtxs_.begin() + config.numForegroundThreads, workerCtxs_.end() },
-            groupCtxs_[JobPriorityGroup::eBackground]);
+        initWorkerContexts({ workerCtxs_.begin() + config.numForegroundThreads, workerCtxs_.end() },
+                           groupCtxs_[JobPriorityGroup::eBackground]);
     }
 }
 
 template<JobPoolSizeConfig PoolSizeConfig>
-void JobSystem<PoolSizeConfig>::initWorkerContexts(
-    VectorView<details::WorkerContext> ctxs,
-    details::WorkerGroupContext&       groupCtx)
+void JobSystem<PoolSizeConfig>::initWorkerContexts(VectorView<details::WorkerContext> ctxs,
+                                                   details::WorkerGroupContext&       groupCtx)
 {
     for (auto& ctx : ctxs)
     {
@@ -186,8 +181,7 @@ JobHandle JobSystem<PoolSizeConfig>::allocJob(AllocJobPasskey,
     instance.priority = priority;
     instance.dependencyCount.store(1, std::memory_order_release);
     instance.size = size;
-    instance.state.store(details::JobInstance::State::eAllocated,
-                         std::memory_order_release);
+    instance.state.store(details::JobInstance::State::eAllocated, std::memory_order_release);
     salt = instance.salt.load(std::memory_order_acquire);
     if (salt == JobHandle::kInvalidSalt) [[unlikely]]
     {
@@ -206,8 +200,7 @@ JobHandle JobSystem<PoolSizeConfig>::allocJob(AllocJobPasskey,
 template<JobPoolSizeConfig PoolSizeConfig>
 void JobSystem<PoolSizeConfig>::scheduleJob(JobHandle handle)
 {
-    MK_ASSERTF(isValidHandle(handle),
-               "[Job System]: only a valid job handle can be scheduled.");
+    MK_ASSERTF(isValidHandle(handle), "[Job System]: only a valid job handle can be scheduled.");
     [[maybe_unused]] details::JobInstance::State state;
     state = instances_[handle.id].state.load(std::memory_order_acquire);
     MK_ASSERTF(state == details::JobInstance::State::eAllocated,
@@ -224,8 +217,7 @@ Result JobSystem<PoolSizeConfig>::waitForJob(JobHandle      handle,
                                              bool           executeJobWhileWaiting,
                                              util::Duration duration)
 {
-    MK_ASSERTF(isValidHandle(handle),
-               "[Job System]: only can wait for a valid job handle.");
+    MK_ASSERTF(isValidHandle(handle), "[Job System]: only can wait for a valid job handle.");
 
     static util::Duration kPollPeriod = std::chrono::milliseconds(1);
 
@@ -254,8 +246,7 @@ Result JobSystem<PoolSizeConfig>::waitForJob(JobHandle      handle,
 }
 
 template<JobPoolSizeConfig PoolSizeConfig>
-void JobSystem<PoolSizeConfig>::addJobDependency(JobHandle dependerHandle,
-                                                 JobHandle dependeeHandle)
+void JobSystem<PoolSizeConfig>::addJobDependency(JobHandle dependerHandle, JobHandle dependeeHandle)
 {
     MK_ASSERTF(isValidHandle(dependerHandle) &&
                    instances_[dependerHandle.id].state.load(std::memory_order_relaxed) ==
@@ -273,8 +264,7 @@ void JobSystem<PoolSizeConfig>::addJobDependency(JobHandle dependerHandle,
     JobDepdencyNode&      node = dependencyGraph_[dependeeInstance.id];
     {
         ScopedLock<SharedMutex> lock(node.mutex);
-        if (dependeeInstance.salt.load(std::memory_order_acquire) ==
-                dependeeHandle.salt &&
+        if (dependeeInstance.salt.load(std::memory_order_acquire) == dependeeHandle.salt &&
             dependeeInstance.state.load(std::memory_order_acquire) <
                 details::JobInstance::State::eFinished)
         {
@@ -298,8 +288,7 @@ void JobSystem<PoolSizeConfig>::finishJob(details::JobInstance& instance)
 
     {
         ScopedLock<SharedMutex> lock(node.mutex);
-        instance.state.store(details::JobInstance::State::eFinished,
-                             std::memory_order_release);
+        instance.state.store(details::JobInstance::State::eFinished, std::memory_order_release);
         for (auto& depender : node.data)
         {
             decrementJobDependencyCount(*depender);
@@ -336,8 +325,7 @@ void JobSystem<PoolSizeConfig>::finishJob(details::JobInstance& instance)
 }
 
 template<JobPoolSizeConfig PoolSizeConfig>
-void JobSystem<PoolSizeConfig>::decrementJobDependencyCount(
-    details::JobInstance& instance)
+void JobSystem<PoolSizeConfig>::decrementJobDependencyCount(details::JobInstance& instance)
 {
     u32 prevCount = instance.dependencyCount.fetch_sub(1, std::memory_order_acq_rel);
     // MK_RAW_LOG_INFO("decrementing id: {}, prev: {}", instance.id, prevCount);
@@ -355,8 +343,7 @@ void JobSystem<PoolSizeConfig>::decrementJobDependencyCount(
     details::GlobalJobQueue* globalQueue = nullptr;
     details::LocalJobQueue*  localQueue = nullptr;
 
-    if (ctx &&
-        ctx->groupCtx->priorityGroup == details::toPriorityGroup(instance.priority))
+    if (ctx && ctx->groupCtx->priorityGroup == details::toPriorityGroup(instance.priority))
     {
         localQueue = &ctx->queue;
     }
@@ -389,8 +376,7 @@ void JobSystem<PoolSizeConfig>::decrementJobDependencyCount(
 
     details::JobInstance::State state = details::JobInstance::State::eAllocated;
     bool                        success =
-        instance.state.compare_exchange_strong(state,
-                                               details::JobInstance::State::eScheduled);
+        instance.state.compare_exchange_strong(state, details::JobInstance::State::eScheduled);
     MK_ASSERT(success);
 
     if (localQueue && localQueue->tryEnqueue(&instance))
@@ -418,8 +404,7 @@ bool JobSystem<PoolSizeConfig>::isJobFinished(JobHandle handle)
 
     details::JobInstance& instance = instances_[handle.id];
     return handle.salt != instance.salt.load(std::memory_order_relaxed) ||
-           instance.state.load(std::memory_order_relaxed) ==
-               details::JobInstance::State::eFinished;
+           instance.state.load(std::memory_order_relaxed) == details::JobInstance::State::eFinished;
 }
 
 } // namespace mk::cc

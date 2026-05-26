@@ -139,6 +139,13 @@ class JobSystem: public IJobSystem
     static_assert(kJobHandleCount <= UINT32_MAX,
                   "Cannot have more than UINT32_MAX number of jobs");
 
+    static_assert(PoolSizeConfig.smallJobPoolSize >= 1,
+                  "Pool size less than 1 is not supported");
+    static_assert(PoolSizeConfig.mediumJobPoolSize >= 1,
+                  "Pool size less than 1 is not supported");
+    static_assert(PoolSizeConfig.largeJobPoolSize >= 1,
+                  "Pool size less than 1 is not supported");
+
     static constexpr usize kSmallJobHandleStartIdx = 0;
     static constexpr usize kMediumJobHandleStartIdx =
         kSmallJobHandleStartIdx + PoolSizeConfig.smallJobPoolSize;

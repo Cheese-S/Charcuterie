@@ -14,7 +14,7 @@ public:
     // TODO(Cheese_S): rethink how these apis should work
     // Maybe we should allow the user to pass in a size
     // even for Vector<std::byte> or String?
-    Result read(Vector<std::byte>& dst) override;
+    Result read(Vector<byte>& dst) override;
     Result read(String& dst) override;
     Result read(void* dst, usize dstSize) override;
 

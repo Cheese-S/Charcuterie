@@ -24,6 +24,8 @@ using usize = std::size_t;
 using uptr = std::uintptr_t;
 using iptr = std::intptr_t;
 
+using byte = std::byte;
+
 using nullptr_t = decltype(nullptr);
 
 }; // namespace mk

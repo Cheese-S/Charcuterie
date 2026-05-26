@@ -38,7 +38,7 @@ class IFileHandle
 public:
     virtual ~IFileHandle() = default;
 
-    [[nodiscard]] virtual Result read(Vector<std::byte>& dst) = 0;
+    [[nodiscard]] virtual Result read(Vector<byte>& dst) = 0;
     [[nodiscard]] virtual Result read(String& dst) = 0;
     [[nodiscard]] virtual Result read(void* dst, usize dstSize) = 0;
 
@@ -50,11 +50,9 @@ public:
 
 using IFileHandlePtr = UniquePtr<IFileHandle>;
 
-Result
-openUniqueFile(const Path& path, FileAccessMode mode, UniquePtr<IFileHandle>& outHandle);
+Result openUniqueFile(const Path& path, FileAccessMode mode, UniquePtr<IFileHandle>& outHandle);
 
-Result
-openSharedFile(const Path& path, FileAccessMode mode, SharedPtr<IFileHandle>& outHandle);
+Result openSharedFile(const Path& path, FileAccessMode mode, SharedPtr<IFileHandle>& outHandle);
 
 Result removeFile(const Path& path);
 
