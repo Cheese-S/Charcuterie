@@ -56,6 +56,12 @@ add_library(milk_core
 	src/util/Clock.cpp
 
     # END_GEN
+
+    # BEGIN_FILE_GEN src/io
+
+	src/io/BufferedWriter.cpp
+
+    # END_GEN
 )
 
 target_include_directories(milk_core PUBLIC
@@ -151,6 +157,11 @@ add_test(FileTest
 
 add_test(PathTest 
          SOURCES test/filesystem/PathTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
+
+add_test(BufferedWriterTest 
+         SOURCES test/io/BufferedWriterTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
