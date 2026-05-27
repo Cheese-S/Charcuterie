@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iterator>
 #ifndef MK_STRING_IMPL
     #include <core/container/IString.h>
 #endif
@@ -200,6 +201,14 @@ usize IString<Storage>::rfind(char c) const
         }
     }
     return kNpos;
+}
+
+template<typename Storage>
+template<typename... ArgsType>
+void IString<Storage>::fmt(fmt::format_string<ArgsType...> format, ArgsType&&... args)
+{
+    FmtAdapter adapter(*this);
+    fmt::format_to(std::back_inserter(adapter), format, std::forward<ArgsType>(args)...);
 }
 
 template<typename Storage>

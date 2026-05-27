@@ -214,6 +214,60 @@ TEST(StringConcat, OperatorPlus)
 }
 
 // ─────────────────────────────────────────────
+// fmt
+// ─────────────────────────────────────────────
+
+TEST(StringFmt, BasicInteger)
+{
+    String s;
+    s.fmt("value: {}", 42);
+    EXPECT_STREQ(s.cstr(), "value: 42");
+}
+
+TEST(StringFmt, BasicString)
+{
+    String s;
+    s.fmt("hello {}", "world");
+    EXPECT_STREQ(s.cstr(), "hello world");
+}
+
+TEST(StringFmt, MultipleArgs)
+{
+    String s;
+    s.fmt("{} {} {}", 1, 2, 3);
+    EXPECT_STREQ(s.cstr(), "1 2 3");
+}
+
+TEST(StringFmt, AppendsToExisting)
+{
+    String s("prefix: ");
+    s.fmt("{}", 42);
+    EXPECT_STREQ(s.cstr(), "prefix: 42");
+}
+
+TEST(StringFmt, Float)
+{
+    String s;
+    s.fmt("{:.2f}", 3.14159F);
+    EXPECT_STREQ(s.cstr(), "3.14");
+}
+
+TEST(StringFmt, NullTerminatedAfterFmt)
+{
+    String s;
+    s.fmt("hi {}", 123);
+    EXPECT_EQ(s.cstr()[s.size()], '\0');
+}
+
+TEST(StringFmt, SizeCorrectAfterFmt)
+{
+    String s;
+    s.fmt("P6\n{} {}\n255\n", 256, 256);
+    EXPECT_EQ(s.size(), strlen("P6\n256 256\n255\n"));
+    EXPECT_STREQ(s.cstr(), "P6\n256 256\n255\n");
+}
+
+// ─────────────────────────────────────────────
 // replace
 // ─────────────────────────────────────────────
 

@@ -32,6 +32,26 @@ class IString
     using ReverseIt = std::reverse_iterator<char*>;
     using ConstReverseIt = std::reverse_iterator<const char*>;
 
+    class FmtAdapter
+    {
+    public:
+        using value_type = char;
+        using reference = char&;
+        using pointer = char*;
+        using difference_type = iptr;
+        using iterator_category = std::output_iterator_tag;
+
+        FmtAdapter(IString& str): str_(str) {}
+
+        void push_back(char c)
+        {
+            str_.push(c);
+        }
+
+    private:
+        IString& str_;
+    };
+
 public:
     static constexpr usize kNpos = SIZE_MAX;
 
@@ -70,6 +90,9 @@ public:
     void  replace(char from, char to);
     usize lfind(char c) const;
     usize rfind(char c) const;
+
+    template<typename... ArgsType>
+    void fmt(fmt::format_string<ArgsType...> format, ArgsType&&... args);
 
     const char* cstr() const;
     StringView  cstrView();
