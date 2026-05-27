@@ -237,6 +237,13 @@ def genCompileCmds():
     #
 
 
+def getCpuCount() -> int:
+    cpuCount = os.cpu_count()
+    if (cpuCount == None):
+        cpuCount = 8
+    return cpuCount
+
+
 def fuzzySelectTarget(config: Config,
                       target: str,
                       filter: Callable[[str], bool] | None = None
@@ -244,6 +251,14 @@ def fuzzySelectTarget(config: Config,
     targets = cmake.getCMakeTargets(configToBuildDir(config), filter)
     selection = util.findTargetWithFzf(targets, target)
     return selection
+
+
+def buildTarget(config: Config, target: str, jobs: int, verbose: bool):
+
+    verboseFlag = "--verbose" if verbose else ""
+    runCmd(
+        f"cmake --build {configToBuildDir(config)} {verboseFlag} -j {jobs} -t {target}",
+        "Building: ")
 
 
 def build(opt: BuildOption):
@@ -255,13 +270,10 @@ def build(opt: BuildOption):
     target, _ = selection
 
     buildDir = configToBuildDir(opt.config)
-    verboseFlag = "--verbose" if opt.verbose else ""
-
     if (opt.regen or not os.path.exists(f"{buildDir}")):
         regen()
 
-    runCmd(f"cmake --build {buildDir} {verboseFlag} -j {opt.jobs} -t {target}",
-           "Building: ")
+    buildTarget(opt.config, target, opt.jobs, opt.verbose)
 
 
 def run(opt: RunOption):
@@ -272,13 +284,7 @@ def run(opt: RunOption):
 
     target, path = selection
 
-    cpuCount = os.cpu_count()
-    if (cpuCount == None):
-        cpuCount = 8
-
-    runCmd(
-        f"cmake --build {configToBuildDir(opt.config)} -j {cpuCount} -t {target}"
-    )
+    buildTarget(opt.config, target, getCpuCount(), False)
 
     runCmd(f"{path}", "Running App: ")
 
@@ -299,7 +305,9 @@ def test(opt: TestOpiton):
         logError(f"Unable to find a target named {opt.target}")
         return
 
-    _, path = selection
+    target, path = selection
+
+    buildTarget(Config.eDebug, target, getCpuCount(), False)
 
     runCmd(f"{path}", "Testing: ")
 
