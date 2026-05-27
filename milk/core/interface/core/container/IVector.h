@@ -224,7 +224,7 @@ private:
             return;
         }
 
-        currCapacity *= 2;
+        currCapacity *= 1.5;
 
         currCapacity = std::max(requestedCapacity, currCapacity);
 
