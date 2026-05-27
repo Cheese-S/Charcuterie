@@ -21,6 +21,7 @@ Checks:
   -modernize-avoid-c-arrays,
   -modernize-type-traits,
   -modernize-unary-static-assert,
+  -modernize-use-default-member-init,
   -performance-move-const-arg,
   -performance-avoid-endl,
   -performance-enum-size,
