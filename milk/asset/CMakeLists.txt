@@ -11,6 +11,12 @@ add_library(milk_asset
 	src/import/raw/Gltf.cpp
 
     # END_GEN
+
+    # BEGIN_FILE_GEN src/export/raw
+
+	src/export/raw/Ppm.cpp
+
+    # END_GEN
 )
 
 target_include_directories(milk_asset PUBLIC
@@ -29,3 +35,12 @@ target_link_libraries(milk_asset PUBLIC
 target_link_libraries(milk_asset PRIVATE 
     cgltf
 )
+
+# BEGIN_TEST_GEN ./test milk_asset
+
+
+add_test(PpmTest 
+         SOURCES test/export/raw/PpmTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_asset milk_test)
+# END_GEN
