@@ -1,5 +1,6 @@
 #pragma once
 #include <core/IMacro.h>
+#include <core/IAssert.h>
 
 namespace mk
 {
