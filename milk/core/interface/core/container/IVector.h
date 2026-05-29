@@ -336,6 +336,11 @@ public:
 
     VectorView(T* begin, T* end): begin_(begin), end_(end) {}
 
+    template<usize N>
+    VectorView(T (&arr)[N]): begin_(arr), end_(arr + N)
+    {
+    }
+
     const T& operator[](int i) const
     {
         MK_ASSERT(i < end_ - begin_);

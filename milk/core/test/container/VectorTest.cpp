@@ -442,4 +442,13 @@ TEST(VectorView, DataPointerMatchesVector)
     VectorView<int> view(v);
     EXPECT_EQ(view.cdata(), v.data());
 }
+
+TEST(VectorView, CArray)
+{
+    int             arr[3] = { 1, 2, 3 };
+    VectorView<int> view(arr);
+
+    EXPECT_EQ(view.size(), 3);
+    EXPECT_EQ(view.begin(), arr);
+}
 } // namespace mk
