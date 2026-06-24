@@ -5,7 +5,6 @@ project(
     LANGUAGES CXX
 )
 
-# TODO(CHEESE_S): move builds to their separate subfolder cmake scripts
 # ------------------------------------ PROJECT WIDE ----------------------------
 set(CMAKE_LINK_LIBRARIES_STRATEGY REORDER_MINIMALLY)
 set(CMAKE_CXX_STANDARD 20)
