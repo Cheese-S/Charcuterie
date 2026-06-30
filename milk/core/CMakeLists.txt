@@ -62,6 +62,12 @@ add_library(milk_core
 	src/io/BufferedWriter.cpp
 
     # END_GEN
+
+    # BEGIN_FILE_GEN src/math
+
+	src/math/Mlm.cpp
+
+    # END_GEN
 )
 
 target_include_directories(milk_core PUBLIC
@@ -167,6 +173,11 @@ add_test(BufferedWriterTest
 
 add_test(LogTest 
          SOURCES test/log/LogTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
+
+add_test(MlmTest 
+         SOURCES test/math/MlmTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 # END_GEN

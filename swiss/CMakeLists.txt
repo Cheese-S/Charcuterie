@@ -13,6 +13,12 @@ add_executable(swiss
 	src/PathTracer.cpp
 
     # END_GEN
+
+    # BEGIN_FILE_GEN src/render/
+
+	src/render/Camera.cpp
+
+    # END_GEN
 )
 
 target_include_directories(swiss PRIVATE
@@ -21,4 +27,5 @@ target_include_directories(swiss PRIVATE
 
 target_link_libraries(swiss PRIVATE
     milk_core       
+    milk_asset
 )
