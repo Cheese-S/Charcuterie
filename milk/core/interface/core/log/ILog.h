@@ -65,10 +65,10 @@ public:
 
     static Result makeLogSystem(LogSystemConfig config, UniquePtr<LogSystem>& outSystem);
 
-    LogSystem(LogSystemPasskey,
-              VectorView<IFormatterPtr> formatters,
+    LogSystem(VectorView<IFormatterPtr> formatters,
               VectorView<ISinkPtr>      sinks,
-              StringView                pattern);
+              StringView                pattern,
+              LogSystemPasskey);
 
     // eOk, if nothing went wrong
     // eInvalidParam if the pattern is deemd invalid (repeated / no formatter flags)

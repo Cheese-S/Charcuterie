@@ -46,7 +46,7 @@ bool tryDequeueJob(WorkerContext& ctx, JobInstance*& outInstance)
 void runJob(details::JobInstance& instance)
 {
     MK_ASSERT(tlsCtx);
-    tlsCtx->jobSystem->runJob(IJobSystem::RunJobPasskey{}, instance);
+    tlsCtx->jobSystem->runJob(instance, IJobSystem::RunJobPasskey());
 }
 
 void jobThreadFn(WorkerContext& ctx)

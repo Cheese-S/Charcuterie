@@ -123,11 +123,11 @@ JobSystem<PoolSizeConfig>::~JobSystem()
 }
 
 template<JobPoolSizeConfig PoolSizeConfig>
-JobHandle JobSystem<PoolSizeConfig>::allocJob(AllocJobPasskey,
-                                              usize          size,
+JobHandle JobSystem<PoolSizeConfig>::allocJob(usize          size,
                                               JobPriority    priority,
                                               JobPlacementFn fn,
-                                              void*          args)
+                                              void*          args,
+                                              AllocJobPasskey)
 {
     std::byte* bytes = nullptr;
     u32        index;
@@ -275,7 +275,7 @@ void JobSystem<PoolSizeConfig>::addJobDependency(JobHandle dependerHandle, JobHa
 }
 
 template<JobPoolSizeConfig PoolSizeConfig>
-void JobSystem<PoolSizeConfig>::runJob(RunJobPasskey, details::JobInstance& instance)
+void JobSystem<PoolSizeConfig>::runJob(details::JobInstance& instance, RunJobPasskey)
 {
     instance.job->run();
     finishJob(instance);

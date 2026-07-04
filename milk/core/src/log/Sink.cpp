@@ -1,7 +1,7 @@
 #include <core/log/Log.h>
 #include <core/log/ISink.h>
 #include <core/container/IString.h>
-#include <core/IWindows.h>
+#include <core/os/IWindows.h>
 #include <core/IEnum.h>
 #include <core/log/IRawLog.h>
 #include <core/log/AnsiColor.h>
@@ -47,12 +47,11 @@ Result FileSink::makeFileSink(const fs::Path& path, ISinkPtr& outPtr)
         MK_RAW_LOG_ERROR("Failed to open file {}", path.cstr());
         return res;
     }
-    outPtr = makeUnique<FileSink>(FileSinkPasskey{}, std::move(handle));
+    outPtr = makeUnique<FileSink>(std::move(handle), FileSinkPasskey());
     return res;
 }
 
-FileSink::FileSink(FileSink::FileSinkPasskey, UniquePtr<fs::IFileHandle>&& handle):
-    file_(std::move(handle))
+FileSink::FileSink(UniquePtr<fs::IFileHandle>&& handle, FileSinkPasskey): file_(std::move(handle))
 {
 }
 

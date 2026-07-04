@@ -103,29 +103,24 @@ public:
 
         template<typename T, typename... ArgsType>
             requires std::derived_from<T, IJob>
-        friend JobHandle
-        allocJob(IJobSystem& system, JobPriority priority, ArgsType&&... args);
+        friend JobHandle allocJob(IJobSystem& system, JobPriority priority, ArgsType&&... args);
     };
 
     using JobPlacementFn = IJob*(std::byte* bytes, void* args);
 
     virtual ~IJobSystem() = default;
 
-    virtual JobHandle allocJob(AllocJobPasskey,
-                               usize          size,
-                               JobPriority    priority,
-                               JobPlacementFn fn,
-                               void*          args) = 0;
+    virtual JobHandle
+    allocJob(usize size, JobPriority priority, JobPlacementFn fn, void* args, AllocJobPasskey) = 0;
 
     virtual void scheduleJob(JobHandle handle) = 0;
 
     virtual void addJobDependency(JobHandle depender, JobHandle dependee) = 0;
 
-    virtual Result waitForJob(JobHandle      handle,
-                              bool           executeJobWhileWaiting,
-                              util::Duration duration) = 0;
+    virtual Result
+    waitForJob(JobHandle handle, bool executeJobWhileWaiting, util::Duration duration) = 0;
 
-    virtual void runJob(RunJobPasskey, details::JobInstance& instance) = 0;
+    virtual void runJob(details::JobInstance& instance, RunJobPasskey) = 0;
 };
 
 // TODO(Cheese_S): maybe provide speicialization where job count can be zero
@@ -136,15 +131,11 @@ class JobSystem: public IJobSystem
     static constexpr usize kJobHandleCount = PoolSizeConfig.smallJobPoolSize +
                                              PoolSizeConfig.mediumJobPoolSize +
                                              PoolSizeConfig.largeJobPoolSize;
-    static_assert(kJobHandleCount <= UINT32_MAX,
-                  "Cannot have more than UINT32_MAX number of jobs");
+    static_assert(kJobHandleCount <= UINT32_MAX, "Cannot have more than UINT32_MAX number of jobs");
 
-    static_assert(PoolSizeConfig.smallJobPoolSize >= 1,
-                  "Pool size less than 1 is not supported");
-    static_assert(PoolSizeConfig.mediumJobPoolSize >= 1,
-                  "Pool size less than 1 is not supported");
-    static_assert(PoolSizeConfig.largeJobPoolSize >= 1,
-                  "Pool size less than 1 is not supported");
+    static_assert(PoolSizeConfig.smallJobPoolSize >= 1, "Pool size less than 1 is not supported");
+    static_assert(PoolSizeConfig.mediumJobPoolSize >= 1, "Pool size less than 1 is not supported");
+    static_assert(PoolSizeConfig.largeJobPoolSize >= 1, "Pool size less than 1 is not supported");
 
     static constexpr usize kSmallJobHandleStartIdx = 0;
     static constexpr usize kMediumJobHandleStartIdx =
@@ -168,11 +159,11 @@ public:
     ~JobSystem() override;
 
     // Internal. Call the templated helper function below.
-    JobHandle allocJob(AllocJobPasskey,
-                       usize          size,
+    JobHandle allocJob(usize          size,
                        JobPriority    priority,
                        JobPlacementFn fn,
-                       void*          args) override;
+                       void*          args,
+                       AllocJobPasskey) override;
 
     void scheduleJob(JobHandle handle) override;
 
@@ -184,11 +175,10 @@ public:
     // Returns eOk if job is already finished / finished within duration.
     // DO NOT CALL executeJobWhileWaiting on the main thread. It will cause undefined
     // behavior.
-    Result waitForJob(JobHandle      handle,
-                      bool           executeJobWhileWaiting,
-                      util::Duration duration) override;
+    Result
+    waitForJob(JobHandle handle, bool executeJobWhileWaiting, util::Duration duration) override;
 
-    void runJob(RunJobPasskey, details::JobInstance& instance) override;
+    void runJob(details::JobInstance& instance, RunJobPasskey) override;
 
 private:
     bool isValidHandle(JobHandle handle);
@@ -235,11 +225,11 @@ JobHandle allocJob(IJobSystem& system, JobPriority priority, ArgsType&&... args)
                           std::move(tuple));
     };
 
-    return system.allocJob(IJobSystem::AllocJobPasskey{},
-                           sizeof(T),
+    return system.allocJob(sizeof(T),
                            priority,
                            placementFn,
-                           &argsTuple);
+                           &argsTuple,
+                           IJobSystem::AllocJobPasskey());
 }
 
 }; // namespace mk::cc

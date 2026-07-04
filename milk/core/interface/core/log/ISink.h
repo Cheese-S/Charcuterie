@@ -44,7 +44,7 @@ class FileSink final: public ISink
 
 public:
     static Result makeFileSink(const fs::Path& path, ISinkPtr& outPtr);
-    FileSink(FileSinkPasskey, fs::IFileHandlePtr&& handle);
+    FileSink(fs::IFileHandlePtr&& handle, FileSinkPasskey);
     ~FileSink() override = default;
 
     void write(LogContext& ctx, StringView msg) override;

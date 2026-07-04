@@ -66,18 +66,18 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
             1000);
     }
 
-    outPathTracer = makeUnique<PathTracer>(PathTracerPasskey{},
-                                           std::move(logSystem),
+    outPathTracer = makeUnique<PathTracer>(std::move(logSystem),
                                            std::move(jobSystem),
-                                           std::move(camera));
+                                           std::move(camera),
+                                           PathTracerPasskey());
 
     return Result::eOk;
 }
 
-PathTracer::PathTracer(PathTracerPasskey,
-                       UniquePtr<log::LogSystem>&&            logSystem,
+PathTracer::PathTracer(UniquePtr<log::LogSystem>&&            logSystem,
                        UniquePtr<cc::IJobSystem>&&            jobSystem,
-                       UniquePtr<render::PerspectiveCamera>&& camera):
+                       UniquePtr<render::PerspectiveCamera>&& camera,
+                       PathTracerPasskey):
     logSystem_(std::move(logSystem)), jobSystem_(std::move(jobSystem)), camera_(std::move(camera))
 {
 }
@@ -102,7 +102,6 @@ Result PathTracer::run()
             f32      t = 0;
             if (mlm::raySphereIntersection(ray, sphere, t))
             {
-                MK_LOG_INFO("HIT: {}, {}", x, y);
                 pixels.push(1.0f);
                 pixels.push(1.0f);
                 pixels.push(1.0f);

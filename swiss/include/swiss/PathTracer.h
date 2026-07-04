@@ -13,10 +13,10 @@ class PathTracer
 
 public:
     static Result makePathTracer(UniquePtr<PathTracer>& outPathTracer);
-    PathTracer(PathTracerPasskey,
-               UniquePtr<log::LogSystem>&&            logSystem,
+    PathTracer(UniquePtr<log::LogSystem>&&            logSystem,
                UniquePtr<cc::IJobSystem>&&            jobSystem,
-               UniquePtr<render::PerspectiveCamera>&& camera);
+               UniquePtr<render::PerspectiveCamera>&& camera,
+               PathTracerPasskey);
 
     Result run();
 

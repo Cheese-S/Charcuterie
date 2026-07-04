@@ -148,17 +148,14 @@ Result LogSystem::makeLogSystem(LogSystemConfig config, UniquePtr<LogSystem>& ou
     registerFlagFormatters(flagFomartterMap, config.userFlagFormatters);
     MK_RETURN_IF_NOT_OK(compilePattern(config.pattern, flagFomartterMap, formatters));
 
-    outSystem = makeUnique<LogSystem>(LogSystemPasskey{},
-                                      formatters,
-                                      config.sinks,
-                                      config.pattern);
+    outSystem = makeUnique<LogSystem>(formatters, config.sinks, config.pattern, LogSystemPasskey());
     return Result::eOk;
 }
 
-LogSystem::LogSystem([[maybe_unused]] LogSystemPasskey key,
-                     VectorView<IFormatterPtr>         formatters,
-                     VectorView<ISinkPtr>              sinks,
-                     StringView pattern): pattern_(pattern), logCount_(0)
+LogSystem::LogSystem(VectorView<IFormatterPtr> formatters,
+                     VectorView<ISinkPtr>      sinks,
+                     StringView                pattern,
+                     LogSystemPasskey): pattern_(pattern), logCount_(0)
 {
     for (auto& formatter : formatters)
     {
@@ -179,7 +176,7 @@ void LogSystem::logImpl(LogCategory          category,
 {
     std::chrono::time_point now = std::chrono::system_clock::now();
     std::time_t             nowTime = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    auto                    ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
 
     LogContext ctx = {
         .count = logCount_.fetch_add(1, std::memory_order::memory_order_relaxed),
@@ -296,8 +293,7 @@ void lexLiteralFormatter(Lexer& lex, LogSystem::FormatterVector& formatters)
     }
 
     MK_ASSERT(begin != lex.i);
-    formatters.push(
-        makeUnique<LiteralFormatter>(lex.pattern.subview(begin, lex.i - begin)));
+    formatters.push(makeUnique<LiteralFormatter>(lex.pattern.subview(begin, lex.i - begin)));
 };
 
 } // namespace mk::log
