@@ -14,6 +14,12 @@ TEST(PathConstruction, FromCstr)
     EXPECT_STREQ(p.cstr(), "foo/bar");
 }
 
+TEST(PathConstruction, FromCstrAndLen)
+{
+    Path p("foo/", 3);
+    EXPECT_STREQ(p.cstr(), "foo");
+}
+
 TEST(PathConstruction, FromString)
 {
     String s("foo/bar");
@@ -184,6 +190,18 @@ TEST(PathSuffix, DoesNotHaveSuffix)
 {
     Path p("abcaaa");
     EXPECT_STREQ(p.suffix().begin(), "");
+}
+
+TEST(PathParent, HasParent)
+{
+    Path p("aab/aab");
+    EXPECT_STREQ(p.parent().cstr(), "aab");
+}
+
+TEST(PathParent, HasNoParent)
+{
+    Path p("aab");
+    EXPECT_STREQ(p.parent().cstr(), "aab");
 }
 
 } // namespace mk::fs

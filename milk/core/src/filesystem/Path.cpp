@@ -18,6 +18,11 @@ Path::Path(const char* cstr): str_(cstr)
     normalize();
 }
 
+Path::Path(const char* cstr, usize len): str_(cstr, len)
+{
+    normalize();
+}
+
 Path& Path::operator/(const Path& other)
 {
     if (other.str_.empty())
@@ -67,6 +72,17 @@ void Path::normalize()
 bool Path::isAbsolute() const
 {
     return !str_.empty() && str_[0] == kSep;
+}
+
+Path Path::parent() const
+{
+    usize pos = str_.rfind('/');
+    if (pos == String::kNpos)
+    {
+        return Path(str_);
+    }
+
+    return Path(str_.cbegin(), pos);
 }
 
 StringView Path::suffix() const
