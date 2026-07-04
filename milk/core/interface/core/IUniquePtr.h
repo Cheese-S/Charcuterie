@@ -26,10 +26,10 @@ public:
     }
 };
 
-template<typename T>
-class UniquePtr: private DefaultDeleter<T>
+template<typename T, typename Deleter = DefaultDeleter<T>>
+class UniquePtr: private Deleter
 {
-    template<typename U>
+    template<typename U, typename OtherDeleter>
     friend class UniquePtr;
 
 public:
@@ -109,9 +109,9 @@ public:
         return ptr_ != nullptr;
     }
 
-    DefaultDeleter<T>& getDeleter()
+    Deleter& getDeleter()
     {
-        return *static_cast<DefaultDeleter<T>*>(this);
+        return static_cast<Deleter&>(*this);
     }
 
     void reset(T* ptr = nullptr)
@@ -140,10 +140,10 @@ private:
     T* ptr_;
 };
 
-template<typename T>
-class UniquePtr<T[]>: DefaultDeleter<T[]>
+template<typename T, typename Deleter>
+class UniquePtr<T[], Deleter>: Deleter
 {
-    template<typename U>
+    template<typename U, typename OtherDeleter>
     friend class UniquePtr;
 
 public:
@@ -200,9 +200,9 @@ public:
         return ptr_ != nullptr;
     }
 
-    DefaultDeleter<T[]>& getDeleter()
+    Deleter& getDeleter()
     {
-        return *static_cast<DefaultDeleter<T[]>*>(this);
+        return static_cast<Deleter&>(*this);
     }
 
     void reset(T* ptr = nullptr)

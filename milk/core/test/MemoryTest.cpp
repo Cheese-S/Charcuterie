@@ -189,6 +189,25 @@ TEST(UniquePtrConversion, MoveAssignDerivedToBase)
     EXPECT_EQ(base->id(), 1);
 }
 
+TEST(UniquePtr, CustomDeleter)
+{
+    class CustomDeleter
+    {
+    public:
+        void operator()(int* ptr) const
+        {
+            *ptr = 5;
+        }
+    };
+
+    int a = 0;
+    EXPECT_EQ(a, 0);
+    {
+        UniquePtr<int, CustomDeleter> ptr(&a);
+    }
+    EXPECT_EQ(a, 5);
+}
+
 // ─────────────────────────────────────────────
 // UniquePtr<T[]>
 // ─────────────────────────────────────────────
