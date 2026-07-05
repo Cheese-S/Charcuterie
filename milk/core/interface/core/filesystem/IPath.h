@@ -20,6 +20,7 @@ public:
 
     Path& operator/(const Path& other);
     Path& operator/(const char* other);
+    Path& operator/(StringView view);
 
     Path parent() const;
 

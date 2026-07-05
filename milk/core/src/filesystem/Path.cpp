@@ -64,6 +64,26 @@ Path& Path::operator/(const char* other)
     return *this;
 }
 
+Path& Path::operator/(StringView view)
+{
+    if (!view.size())
+    {
+        return *this;
+    }
+
+    if (view[0] == kSep || view[0] == kWindowsSep)
+    {
+        str_ = String(view);
+    }
+    else
+    {
+        str_.push(kSep);
+        str_.push(view);
+    }
+    normalize();
+    return *this;
+}
+
 void Path::normalize()
 {
     str_.replace(kWindowsSep, kSep);

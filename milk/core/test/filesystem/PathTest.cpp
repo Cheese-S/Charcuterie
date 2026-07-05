@@ -134,6 +134,30 @@ TEST(PathJoin, AbsoluteJoinRelative)
     EXPECT_STREQ(p.cstr(), "/foo/bar");
 }
 
+TEST(PathJoinView, JoinRight)
+{
+    Path       p("/foo");
+    StringView view = "abc";
+    p / view;
+    EXPECT_STREQ(p.cstr(), "/foo/abc");
+}
+
+TEST(PathJoinView, OverwriteByRightView)
+{
+    Path       p("/foo");
+    StringView view = "/abc";
+    p / view;
+    EXPECT_STREQ(p.cstr(), "/abc");
+}
+
+TEST(PathJoinView, NoOpView)
+{
+    Path       p("/foo");
+    StringView view = "";
+    p / view;
+    EXPECT_STREQ(p.cstr(), "/foo");
+}
+
 // ─────────────────────────────────────────────
 // operator/ with const char*
 // ─────────────────────────────────────────────
