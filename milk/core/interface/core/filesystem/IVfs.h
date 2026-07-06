@@ -12,7 +12,7 @@ enum class AccessMode;
 class IVfs
 {
 public:
-    virtual ~IVfs();
+    virtual ~IVfs() = default;
 
     virtual bool   fileExist(const Path& path) const = 0;
     virtual bool   dirExist(const Path& path) const = 0;
@@ -31,12 +31,12 @@ public:
 // TODO(Cheese_S): Api is not final yet.
 // TODO(Cheese_S): Big problem: root = "C:/foo/bar", path = "/Games/aab", root / path = "Games/aab".
 // We need to fix this
-class Vfs: IVfs
+class Vfs: public IVfs
 {
     using VfsPasskey = util::Passkey<Vfs>;
 
 public:
-    static Result makeVfs(StringView projectName, UniquePtr<Vfs>& outVfs);
+    static Result makeVfs(StringView projectName, UniquePtr<IVfs>& outVfs);
 
     Vfs(Path&& root, VfsPasskey);
     ~Vfs() override = default;

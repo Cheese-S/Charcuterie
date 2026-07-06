@@ -1,29 +1,41 @@
 #pragma once
 #include <core/IResult.h>
+#include <core/ICompileFlag.h>
 #include <core/log/IRawLog.h>
+#include <intrin.h>
 
-#define MK_ASSERT(x)                                   \
-    do                                                 \
-    {                                                  \
-        bool b = (x);                                  \
-        if (!b)                                        \
-        {                                              \
-            MK_RAW_LOG_ERROR("Assertion failed: " #x); \
-            assert(b);                                 \
-        }                                              \
-                                                       \
-    } while (0)
+#ifdef MK_DEBUG
 
-#define MK_ASSERTF(x, fmt, ...)                 \
-    do                                          \
-    {                                           \
-        bool b = (x);                           \
-        if (!b)                                 \
-        {                                       \
-            MK_RAW_LOG_ERROR(fmt, __VA_ARGS__); \
-            assert(b);                          \
-        }                                       \
-    } while (0)
+    #define MK_ASSERT(x)                                   \
+        do                                                 \
+        {                                                  \
+            bool b = (x);                                  \
+            if (!b)                                        \
+            {                                              \
+                MK_RAW_LOG_ERROR("Assertion failed: " #x); \
+                __debugbreak();                            \
+                assert(b);                                 \
+            }                                              \
+                                                           \
+        } while (0)
+
+    #define MK_ASSERTF(x, fmt, ...)                 \
+        do                                          \
+        {                                           \
+            bool b = (x);                           \
+            if (!b)                                 \
+            {                                       \
+                MK_RAW_LOG_ERROR(fmt, __VA_ARGS__); \
+                __debugbreak();                     \
+                assert(b);                          \
+            }                                       \
+        } while (0)
+
+#else
+    #define MK_ASSERT(x)
+    #define MK_ASSERTF(x, fmt, ...)
+
+#endif
 
 #define MK_ASSERT_UNREACHABLE()  MK_ASSERTF(false, "Unreachable");
 

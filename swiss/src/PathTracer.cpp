@@ -1,4 +1,6 @@
 #include <core/filesystem/IPath.h>
+#include <core/IAppContext.h>
+#include <core/filesystem/IVfs.h>
 #include <core/log/ISink.h>
 #include <core/log/IFormatter.h>
 #include <asset/export/raw/IPpm.h>
@@ -8,8 +10,20 @@ MK_ADD_AND_DEFINE_LOG_CATEGORY(PathTracer, "PathTracer");
 
 namespace mk::swiss
 {
+// TODO(Cheese_S): probably should move this to the outer swiss app.
 Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
 {
+    UniquePtr<fs::IVfs> vfs;
+    {
+        Result res = fs::Vfs::makeVfs("swiss_out", vfs);
+        if (isNotOk(res))
+        {
+            MK_RAW_LOG_ERROR("Failed to initialize vfs");
+            return res;
+        }
+    }
+    AppContext<fs::IVfs>::registerIntsance(vfs.get());
+
     // init log system
     UniquePtr<log::LogSystem> logSystem;
     {
@@ -66,7 +80,8 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
             1000);
     }
 
-    outPathTracer = makeUnique<PathTracer>(std::move(logSystem),
+    outPathTracer = makeUnique<PathTracer>(std::move(vfs),
+                                           std::move(logSystem),
                                            std::move(jobSystem),
                                            std::move(camera),
                                            PathTracerPasskey());
@@ -74,11 +89,13 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
     return Result::eOk;
 }
 
-PathTracer::PathTracer(UniquePtr<log::LogSystem>&&            logSystem,
+PathTracer::PathTracer(UniquePtr<fs::IVfs>&&                  vfs,
+                       UniquePtr<log::LogSystem>&&            logSystem,
                        UniquePtr<cc::IJobSystem>&&            jobSystem,
                        UniquePtr<render::PerspectiveCamera>&& camera,
                        PathTracerPasskey):
-    logSystem_(std::move(logSystem)), jobSystem_(std::move(jobSystem)), camera_(std::move(camera))
+    vfs_(std::move(vfs)), logSystem_(std::move(logSystem)), jobSystem_(std::move(jobSystem)),
+    camera_(std::move(camera))
 {
 }
 
@@ -86,14 +103,15 @@ PathTracer::~PathTracer()
 {
     AppContext<cc::IJobSystem>::unregisterInstance();
     AppContext<log::LogSystem>::unregisterInstance();
+    AppContext<fs::IVfs>::unregisterInstance();
 }
 
 Result PathTracer::run()
 {
     mlm::Sphere  sphere = { .center = mlm::Point(0, 0, 6), .r = 2.0f };
     mlm::u16vec2 resolution = camera_->getResolution();
-    Vector<f32>  pixels;
 
+    Vector<f32> pixels;
     for (u16 y = 0; y < resolution.y(); y++)
     {
         for (u16 x = 0; x < resolution.x(); x++)
@@ -115,21 +133,13 @@ Result PathTracer::run()
         }
     }
 
-    // mlm::Ray a = camera_->sampleRay(399, 0);
-    // mlm::Ray b = camera_->sampleRay(400, 0);
-    //
-    // MK_LOG_DEBUG("a: {}, {}, {}, b: {}, {}, {}",
-    //              a.d.x(),
-    //              a.d.y(),
-    //              a.d.z(),
-    //              b.d.x(),
-    //              b.d.y(),
-    //              b.d.z());
-    //
-    fs::Path path("./result.ppm");
+    fs::Path path("result.ppm");
     MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
         asset::exp::savePpm(path, pixels, resolution.x(), resolution.y()),
         "Failed to write to ppm.");
+
+    MK_LOG_INFO("Finished!");
+
     return Result::eOk;
 }
 

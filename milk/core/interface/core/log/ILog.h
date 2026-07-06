@@ -17,6 +17,7 @@ class ISink;
 class IFormatter;
 struct LogContext;
 
+// TODO(Cheese_S): Remove these.
 using IFormatterPtr = UniquePtr<IFormatter>;
 using ISinkPtr = UniquePtr<ISink>;
 using LogCategory = StringView;

@@ -75,7 +75,7 @@ Result getExePath(Path& outPath)
     return res;
 }
 
-Result Vfs::makeVfs(StringView projectName, UniquePtr<Vfs>& outVfs)
+Result Vfs::makeVfs(StringView projectName, UniquePtr<IVfs>& outVfs)
 {
     Path root;
     if (isNotOk(getExePath(root)))
@@ -84,15 +84,20 @@ Result Vfs::makeVfs(StringView projectName, UniquePtr<Vfs>& outVfs)
         return Result::eUnexpected;
     }
 
-    root / projectName;
+    // TODO(Cheese_S): This is arbitriary.
+    root = root.parent().parent().parent().parent() / projectName;
+
     if (!CreateDirectory(root.cstr(), nullptr))
     {
         Result res = winErrorToResult(GetLastError());
         if (res != Result::eAlreadyExist)
         {
-            MK_RAW_LOG_ERROR("[vfs]: Failed to create root directory, result: {}", res);
+            MK_RAW_LOG_ERROR("[vfs]: Failed to create root directory {}, result: {}",
+                             root.cstr(),
+                             res);
             return Result::eUnexpected;
         }
+        MK_RAW_LOG_INFO("[vfs]: project root initialized at: {}", root.cstr());
     }
 
     outVfs = makeUnique<Vfs>(std::move(root), VfsPasskey());
@@ -119,7 +124,10 @@ Result Vfs::openFile(const Path& path, AccessMode mode, UniquePtr<IFileHandle>& 
     public:
         void operator()(HANDLE* ptr)
         {
-            CloseHandle(*ptr);
+            if (ptr)
+            {
+                CloseHandle(*ptr);
+            }
         }
     };
 

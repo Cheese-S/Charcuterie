@@ -38,8 +38,3 @@
 #define MK_DEFAULT_MOVEABLE_NON_COPYABLE(type) \
     MK_DEFAULT_MOVABLE(type);                  \
     MK_NON_COPYABLE(type)
-
-// ------------------ Compile Configs ----------------------
-#ifndef NDEBUG
-    #define MK_DEBUG
-#endif
