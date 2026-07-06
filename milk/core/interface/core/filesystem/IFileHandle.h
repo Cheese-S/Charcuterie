@@ -16,7 +16,7 @@ public:
     [[nodiscard]] virtual Result read(String& dst) = 0;
     [[nodiscard]] virtual Result read(void* dst, usize dstSize) = 0;
 
-    [[nodiscard]] virtual Result write(VectorView<byte> data) = 0;
+    [[nodiscard]] virtual Result write(VectorView<const byte> data) = 0;
     [[nodiscard]] virtual Result write(const void* buf, usize size) = 0;
     [[nodiscard]] virtual Result write(StringView str) = 0;
     virtual usize                size() = 0;

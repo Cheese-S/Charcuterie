@@ -26,7 +26,9 @@ public:
 
     void operator<<(StringView val);
 
-    VectorView<byte> getView();
+    VectorView<const byte> getView();
+
+    void reserve(usize size);
 
 private:
     void serialize(const void* data, usize size);

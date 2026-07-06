@@ -56,7 +56,7 @@ Result WindowsFileHandle::write(StringView str)
     return write(str.data(), str.size());
 }
 
-Result WindowsFileHandle::write(VectorView<byte> data)
+Result WindowsFileHandle::write(VectorView<const byte> data)
 {
     return write(data.cbegin(), data.size());
 }

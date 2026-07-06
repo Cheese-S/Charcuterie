@@ -30,7 +30,7 @@ Result readBinaryFile(const fs::Path& path, Vector<byte>& outBytes)
     return Result::eOk;
 }
 
-Result writeBinaryFile(const fs::Path& path, const Vector<byte>& bytes)
+Result writeBinaryFile(const fs::Path& path, VectorView<const byte> bytes)
 {
     MK_ASSERTF(bytes.size(), "Passing empty bytes to writeBinaryFile");
 

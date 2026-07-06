@@ -10,5 +10,5 @@ class Path;
 namespace mk::fs::util
 {
 Result readBinaryFile(const fs::Path& path, Vector<byte>& outBytes);
-Result writeBinaryFile(const fs::Path& path, const Vector<byte>& bytes);
+Result writeBinaryFile(const fs::Path& path, VectorView<const byte> bytes);
 } // namespace mk::fs::util

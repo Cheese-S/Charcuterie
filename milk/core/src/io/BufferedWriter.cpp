@@ -69,7 +69,12 @@ void BufferedWriter::operator<<(StringView val)
     serialize(val.data(), val.size());
 }
 
-VectorView<byte> BufferedWriter::getView()
+void BufferedWriter::reserve(usize size)
+{
+    bytes_.reserve(size);
+}
+
+VectorView<const byte> BufferedWriter::getView()
 {
     return { bytes_.begin(), head_ };
 }
