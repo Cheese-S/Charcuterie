@@ -73,8 +73,8 @@ def logError(msg: str):
     util.logCategoryError(DEFAULT_LOG_CATEGORY, msg)
 
 
-def runCmd(cmd: str, prefix: str = ""):
-    util.runCmd(cmd, DEFAULT_LOG_CATEGORY, prefix)
+def runCmd(cmd: str, prefix: str = "") -> int:
+    return util.runCmd(cmd, DEFAULT_LOG_CATEGORY, prefix)
 
 
 def regen():
@@ -253,10 +253,9 @@ def fuzzySelectTarget(config: Config,
     return selection
 
 
-def buildTarget(config: Config, target: str, jobs: int, verbose: bool):
-
+def buildTarget(config: Config, target: str, jobs: int, verbose: bool) -> int:
     verboseFlag = "--verbose" if verbose else ""
-    runCmd(
+    return runCmd(
         f"cmake --build {configToBuildDir(config)} {verboseFlag} -j {jobs} -t {target}",
         "Building: ")
 
@@ -284,7 +283,9 @@ def run(opt: RunOption):
 
     target, path = selection
 
-    buildTarget(opt.config, target, getCpuCount(), False)
+    if (buildTarget(opt.config, target, getCpuCount(), False) != 0):
+        logError(f"Failed to build {opt.target}")
+        return
 
     runCmd(f"{path}", "Running App: ")
 
@@ -307,7 +308,9 @@ def test(opt: TestOpiton):
 
     target, path = selection
 
-    buildTarget(Config.eDebug, target, getCpuCount(), False)
+    if (buildTarget(Config.eDebug, target, getCpuCount(), False) != 0):
+        logError(f"Failed to build target {opt.target}")
+        return
 
     runCmd(f"{path}", "Testing: ")
 

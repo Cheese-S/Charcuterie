@@ -49,9 +49,9 @@ def logCategoryError(category: str, msg: str):
     logInternal(LogType.eError, category, msg, AnsiColor.eRed)
 
 
-def runCmd(cmd: str, tag: str, prefix: str = ""):
+def runCmd(cmd: str, tag: str, prefix: str = "") -> int:
     logCategoryInfo(tag, f"{prefix} {cmd}")
-    os.system(cmd)
+    return os.system(cmd)
 
 
 # FILE UTILS
