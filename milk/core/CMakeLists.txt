@@ -9,8 +9,8 @@ add_library(milk_core
 
     # BEGIN_FILE_GEN src/filesystem
 
-	src/filesystem/File.cpp
 	src/filesystem/Path.cpp
+	src/filesystem/Vfs.cpp
 	src/filesystem/WindowsFileHandle.cpp
 
     # END_GEN
@@ -163,6 +163,11 @@ add_test(FileTest
 
 add_test(PathTest 
          SOURCES test/filesystem/PathTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
+
+add_test(VfsTest 
+         SOURCES test/filesystem/VfsTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 

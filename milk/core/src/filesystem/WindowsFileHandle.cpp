@@ -1,14 +1,14 @@
-#include <core/filesystem/IFile.h>
+#include <core/filesystem/WindowsFileHandle.h>
+#include <core/filesystem/IFileHandle.h>
 #include <core/container/IVector.h>
 #include <core/container/IString.h>
 
 #include <core/WindowsResult.h>
-#include <core/WindowsFileHandle.h>
 #include <core/IEnum.h>
 
 namespace mk::fs
 {
-WindowsFileHandle::WindowsFileHandle(HANDLE handle, usize size, FileAccessMode mode):
+WindowsFileHandle::WindowsFileHandle(HANDLE handle, usize size, AccessMode mode):
     handle_(handle), size_(size), mode_(mode)
 {
 }
@@ -32,7 +32,7 @@ Result WindowsFileHandle::read(String& dst)
 
 Result WindowsFileHandle::read(void* dst, usize dstSize)
 {
-    if (mode_ == FileAccessMode::eWrite || mode_ == FileAccessMode::eAppend)
+    if (mode_ == AccessMode::eWrite || mode_ == AccessMode::eAppend)
     {
         return Result::eInvalidPermission;
     }
@@ -63,7 +63,7 @@ Result WindowsFileHandle::write(VectorView<u8> data)
 
 Result WindowsFileHandle::write(const void* buf, usize size)
 {
-    if (mode_ == FileAccessMode::eRead)
+    if (mode_ == AccessMode::eRead)
     {
         return Result::eInvalidPermission;
     }

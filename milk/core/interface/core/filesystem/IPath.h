@@ -18,6 +18,7 @@ public:
     explicit Path(const char* cstr);
     explicit Path(const char* cstr, usize len);
 
+    // TODO(Cheese_S): currently, we join in place. maybe this is not the right choice?
     Path& operator/(const Path& other);
     Path& operator/(const char* other);
     Path& operator/(StringView view);

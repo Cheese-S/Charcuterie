@@ -1,5 +1,5 @@
 #pragma once
-#include <core/filesystem/IFile.h>
+#include <core/filesystem/IFileHandle.h>
 #include <core/log/ILog.h>
 #include <core/fwd/IStringFwd.h>
 #include <core/util/IPasskey.h>
@@ -44,13 +44,13 @@ class FileSink final: public ISink
 
 public:
     static Result makeFileSink(const fs::Path& path, ISinkPtr& outPtr);
-    FileSink(fs::IFileHandlePtr&& handle, FileSinkPasskey);
+    FileSink(UniquePtr<fs::IFileHandle>&& handle, FileSinkPasskey);
     ~FileSink() override = default;
 
     void write(LogContext& ctx, StringView msg) override;
 
 private:
-    fs::IFileHandlePtr file_;
+    UniquePtr<fs::IFileHandle> file_;
 };
 
 } // namespace mk::log

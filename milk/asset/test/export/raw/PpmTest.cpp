@@ -1,5 +1,5 @@
 #include <test/ITest.h>
-#include <core/filesystem/IFile.h>
+#include <core/filesystem/IFileHandle.h>
 #include <asset/export/raw/IPpm.h>
 
 namespace mk::asset

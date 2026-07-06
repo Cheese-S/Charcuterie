@@ -2,7 +2,9 @@
 #include <core/log/ILogCategory.h>
 #include <core/IAppContext.h>
 #include <asset/export/raw/IPpm.h>
-#include <core/filesystem/IFile.h>
+#include <core/filesystem/IVfs.h>
+#include <core/filesystem/IAccessMode.h>
+#include <core/filesystem/IFileHandle.h>
 
 MK_DEFINE_DEFAULT_LOG_CATEGORY(Asset);
 
@@ -12,8 +14,12 @@ namespace mk::asset::exp
 Result savePpm(const fs::Path& path, VectorView<float> data, u16 width, u16 height)
 {
     MK_ASSERT(data.size() == width * height * 3);
-    fs::IFileHandlePtr handle;
-    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(fs::openUniqueFile(path, fs::FileAccessMode::eWrite, handle),
+
+    fs::IVfs& vfs = AppContext<fs::IVfs>::get();
+
+    UniquePtr<fs::IFileHandle> handle;
+
+    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(vfs.openFile(path, fs::AccessMode::eWrite, handle),
                                       "Failed to open file ");
 
     StackString<1024> header;

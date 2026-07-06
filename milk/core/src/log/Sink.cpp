@@ -6,6 +6,9 @@
 #include <core/log/IRawLog.h>
 #include <core/log/AnsiColor.h>
 #include <core/filesystem/IPath.h>
+#include <core/filesystem/IVfs.h>
+#include <core/filesystem/IAccessMode.h>
+#include <core/IAppContext.h>
 
 namespace mk::log
 {
@@ -40,8 +43,10 @@ void DebugSink::write(LogContext& ctx, StringView msg)
 
 Result FileSink::makeFileSink(const fs::Path& path, ISinkPtr& outPtr)
 {
+    fs::IVfs& vfs = AppContext<fs::IVfs>::get();
+
     UniquePtr<fs::IFileHandle> handle;
-    Result res = fs::openUniqueFile(path, fs::FileAccessMode::eReadAndOverwrite, handle);
+    Result                     res = vfs.openFile(path, fs::AccessMode::eReadAndOverwrite, handle);
     if (isNotOk(res))
     {
         MK_RAW_LOG_ERROR("Failed to open file {}", path.cstr());

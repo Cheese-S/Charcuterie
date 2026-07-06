@@ -1,14 +1,14 @@
 #pragma once
-#include <core/filesystem/IFile.h>
-
-#include <Windows.h>
+#include <core/filesystem/IFileHandle.h>
+#include <core/filesystem/IAccessMode.h>
+#include <core/os/IWindows.h>
 namespace mk::fs
 {
 
 class WindowsFileHandle: public IFileHandle
 {
 public:
-    WindowsFileHandle(HANDLE handle, usize size, FileAccessMode mode);
+    WindowsFileHandle(HANDLE handle, usize size, AccessMode mode);
     ~WindowsFileHandle() override;
 
     // TODO(Cheese_S): rethink how these apis should work
@@ -25,9 +25,9 @@ public:
     inline usize size() override;
 
 private:
-    HANDLE         handle_;
-    usize          size_;
-    FileAccessMode mode_;
+    HANDLE     handle_;
+    usize      size_;
+    AccessMode mode_;
 };
 
 inline usize WindowsFileHandle::size()
