@@ -67,7 +67,7 @@ Result getExePath(Path& outPath)
     Result res = winErrorToResult(GetLastError());
     if (isNotOk(res))
     {
-        MK_RAW_LOG_ERROR("[vfs]: Exe path exceeds max supported length {}", kMaxPathLen);
+        MK_RAW_LOG_ERROR("[FileSystem]: Exe path exceeds max supported length {}", kMaxPathLen);
         return res;
     }
 
@@ -80,7 +80,7 @@ Result Vfs::makeVfs(StringView projectName, UniquePtr<IVfs>& outVfs)
     Path root;
     if (isNotOk(getExePath(root)))
     {
-        MK_RAW_LOG_ERROR("[vfs]: Failed to get exe path");
+        MK_RAW_LOG_ERROR("[FileSystem]: Failed to get exe path");
         return Result::eUnexpected;
     }
 
@@ -92,12 +92,12 @@ Result Vfs::makeVfs(StringView projectName, UniquePtr<IVfs>& outVfs)
         Result res = winErrorToResult(GetLastError());
         if (res != Result::eAlreadyExist)
         {
-            MK_RAW_LOG_ERROR("[vfs]: Failed to create root directory {}, result: {}",
+            MK_RAW_LOG_ERROR("[FileSystem]: Failed to create root directory {}, result: {}",
                              root.cstr(),
                              res);
             return Result::eUnexpected;
         }
-        MK_RAW_LOG_INFO("[vfs]: project root initialized at: {}", root.cstr());
+        MK_RAW_LOG_INFO("[FileSystem]: project root initialized at: {}", root.cstr());
     }
 
     outVfs = makeUnique<Vfs>(std::move(root), VfsPasskey());

@@ -10,6 +10,7 @@ namespace mk
 {
 inline constexpr log::LogCategory kJobSystemLogCategory = "JobSystem";
 inline constexpr log::LogCategory kAssetLogCategory = "Asset";
+inline constexpr log::LogCategory kFileSystemLogCategory = "FileSystem";
 
 #define MK_DEFINE_DEFAULT_LOG_CATEGORY(name)                              \
     namespace                                                             \

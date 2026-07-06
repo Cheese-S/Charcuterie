@@ -18,7 +18,7 @@ public:
     Result read(String& dst) override;
     Result read(void* dst, usize dstSize) override;
 
-    Result write(VectorView<u8> data) override;
+    Result write(VectorView<byte> data) override;
     Result write(StringView str) override;
     Result write(const void* buf, usize size) override;
 
