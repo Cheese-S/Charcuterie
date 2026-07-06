@@ -1,10 +1,11 @@
+#include <algorithm>
+
 #include <core/log/ILog.h>
 #include <core/log/ILogCategory.h>
 #include <core/IAppContext.h>
 #include <asset/export/raw/IPpm.h>
-#include <core/filesystem/IVfs.h>
-#include <core/filesystem/IAccessMode.h>
-#include <core/filesystem/IFileHandle.h>
+#include <core/filesystem/IFileUtil.h>
+#include <core/io/IBufferedWriter.h>
 
 MK_DEFINE_DEFAULT_LOG_CATEGORY(Asset);
 
@@ -15,28 +16,22 @@ Result savePpm(const fs::Path& path, VectorView<float> data, u16 width, u16 heig
 {
     MK_ASSERT(data.size() == width * height * 3);
 
-    fs::IVfs& vfs = AppContext<fs::IVfs>::get();
-
-    UniquePtr<fs::IFileHandle> handle;
-
-    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(vfs.openFile(path, fs::AccessMode::eWrite, handle),
-                                      "Failed to open file ");
-
     StackString<1024> header;
     // p6 means it's binary
     header.fmt("P6\n{} {}\n255\n", width, height);
 
-    Vector<u8> quantized;
-    quantized.reserve(data.size());
+    io::BufferedWriter writer;
+    writer.reserve(header.size() + data.size());
+    writer << StringView(header.data(), header.size());
+
     for (float f : data)
     {
-        quantized.push(std::round(std::clamp(f, 0.F, 1.F) * 255.0F));
+        u8 value = std::round(std::clamp(f, 0.F, 1.F) * 255.0F);
+        MK_ASSERTF(value == 0 || value == 255, "{}", f);
+        writer << value;
     }
 
-    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(handle->write(header.begin(), header.size()),
-                                      "Failed to write the ppm header.");
-    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(handle->write(quantized), "Failed to write the ppm header.");
-
+    MK_RETURN_IF_NOT_OK(fs::util::writeBinaryFile(path, writer.getView()));
     return Result::eOk;
 }
 } // namespace mk::asset::exp

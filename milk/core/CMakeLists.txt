@@ -9,6 +9,7 @@ add_library(milk_core
 
     # BEGIN_FILE_GEN src/filesystem
 
+	src/filesystem/FileUtil.cpp
 	src/filesystem/Path.cpp
 	src/filesystem/Vfs.cpp
 	src/filesystem/WindowsFileHandle.cpp
