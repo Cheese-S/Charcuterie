@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <core/container/IVector.h>
+#include <array>
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -451,4 +452,33 @@ TEST(VectorView, CArray)
     EXPECT_EQ(view.size(), 3);
     EXPECT_EQ(view.begin(), arr);
 }
+
+TEST(AsBytesTest, BasicLayoutMatchesMemory)
+{
+    std::array<uint32_t, 3> data = { 0x11223344, 0x55667788, 0x99AABBCC };
+
+    VectorView<uint32_t> view(data.data(), data.size());
+    auto                 bytes = asBytes(view);
+
+    ASSERT_EQ(bytes.size(), data.size() * sizeof(uint32_t));
+
+    std::byte expected[3 * sizeof(uint32_t)];
+    std::memcpy(expected, data.data(), sizeof(expected));
+
+    for (size_t i = 0; i < bytes.size(); ++i)
+    {
+        EXPECT_EQ(bytes[i], expected[i]);
+    }
+}
+
+TEST(AsBytesTest, SizeIsCorrect)
+{
+    std::array<double, 10> data{};
+
+    VectorView<double> view(data.data(), data.size());
+    auto               bytes = asBytes(view);
+
+    EXPECT_EQ(bytes.size(), data.size() * sizeof(double));
+}
+
 } // namespace mk

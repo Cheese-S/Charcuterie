@@ -1,6 +1,4 @@
 #pragma once
-#include <algorithm>
-#include <cstring>
 #include <initializer_list>
 
 #include <core/IResult.h>
@@ -12,301 +10,74 @@
 namespace mk
 {
 
-// Don't use this type directly, use the aliasing listed below
 template<typename T, typename Storage>
 class IVector
 {
 public:
     using iterator = T*;
-    using const_iterator = T*;
+    using const_iterator = const T*;
 
-    IVector() = default;
+    IVector();
+    ~IVector();
 
-    ~IVector()
-    {
-        destructElems(begin_, size());
-        storage_.free(begin_);
-    }
-
-    IVector(std::initializer_list<T> il)
-    {
-        copyFrom(il.begin(), il.size());
-    }
-
-    IVector(const IVector& other)
-    {
-        copyFrom(other.cbegin(), other.size());
-    }
-
-    IVector(IVector&& other) noexcept
-    {
-        moveOrCopyFrom(std::move(other));
-    }
+    IVector(std::initializer_list<T> il);
+    IVector(const IVector& other);
+    IVector(IVector&& other) noexcept;
 
     template<typename OtherStorage>
-    IVector(const IVector<T, OtherStorage>& other) // NOLINT
-    {
-        copyFrom(other.cbegin(), other.size());
-    }
+    IVector(const IVector<T, OtherStorage>& other);
 
     template<typename OtherStorage>
-    IVector(IVector<T, OtherStorage>&& other) // NOLINT
-    {
-        destructElems(begin_, size());
-        moveOrCopyFrom(std::move(other));
-    }
+    IVector(IVector<T, OtherStorage>&& other);
 
-    // This is needed to avoid constructor being called again in the following case
-    // mk::Vector<int> vec = {1};   <- calls constructor
-    // vec = {2};                   <- calls operator=
-    IVector& operator=(std::initializer_list<T> il)
-    {
-        destructElems(begin_, size());
-        copyFrom(il.begin(), il.size());
-        return *this;
-    }
-
-    IVector& operator=(const IVector& other) noexcept
-    {
-        if (this != &other)
-        {
-            destructElems(begin_, size());
-            copyFrom(other.cbegin(), other.size());
-        }
-        return *this;
-    }
-
-    IVector& operator=(IVector&& other) noexcept
-    {
-        if (this != &other)
-        {
-            destructElems(begin_, size());
-            moveOrCopyFrom(std::move(other));
-        }
-        return *this;
-    }
+    IVector& operator=(std::initializer_list<T> il);
+    IVector& operator=(const IVector& other) noexcept;
+    IVector& operator=(IVector&& other) noexcept;
 
     template<typename OtherStorage>
-    IVector& operator=(const IVector<T, OtherStorage>& other) noexcept
-    {
-        destructElems(begin_, size());
-        copyFrom(other.cbegin(), other.size());
-        return *this;
-    }
+    IVector& operator=(const IVector<T, OtherStorage>& other) noexcept;
 
     template<typename OtherStorage>
-    IVector& operator=(IVector<T, OtherStorage>&& other) noexcept
-    {
-        destructElems(begin_, size());
-        moveOrCopyFrom(std::move(other));
-        return *this;
-    }
+    IVector& operator=(IVector<T, OtherStorage>&& other) noexcept;
 
-    T& operator[](int index)
-    {
-        MK_ASSERT((0 <= index) && ((usize)index < capacity()));
-        return begin_[index];
-    }
+    T&       operator[](int index);
+    const T& operator[](int index) const;
 
-    const T& operator[](int index) const
-    {
-        MK_ASSERT((0 <= index) && ((usize)index < capacity()));
-        return begin_[index];
-    }
+    iterator begin() noexcept;
+    iterator end() noexcept;
 
-    iterator begin() noexcept
-    {
-        return begin_;
-    }
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
 
-    iterator end() noexcept
-    {
-        return end_;
-    }
+    T& push(const T& v);
+    T& push(T&& v);
 
-    const_iterator cbegin() const noexcept
-    {
-        return begin_;
-    }
-
-    const_iterator cend() const noexcept
-    {
-        return end_;
-    }
-
-    T& push(const T& v)
-    {
-        return emplace(v);
-    }
-
-    T& push(T&& v)
-    {
-        return emplace(std::move(v));
-    }
-
-    T pop()
-    {
-        MK_ASSERT(size() > 0);
-        T result = std::move(*(--end_));
-        destructElems(end_, 1);
-        return result;
-    }
+    T pop();
 
     template<typename... ArgsType>
-    T& emplace(ArgsType&&... args)
-    {
-        ensureCapcity(size() + 1);
-        ::new (static_cast<void*>(end_)) T(std::forward<ArgsType>(args)...);
-        return *end_++;
-    }
+    T& emplace(ArgsType&&... args);
 
-    void reserve(usize count)
-    {
-        ensureCapcity(count);
-    }
+    void reserve(usize count);
+    void resize(usize count);
+    void clear();
 
-    void resize(usize count)
-    {
-        ensureCapcity(count);
+    T*       data();
+    const T* cdata() const;
 
-        usize prevCount = size();
-
-        if (count < prevCount)
-        {
-            destructElems(end_, prevCount - count);
-        }
-
-        if (count > prevCount)
-        {
-            defaultConstructElems(end_, count - prevCount);
-        }
-
-        end_ = begin_ + count;
-    }
-
-    void clear()
-    {
-        destructElems(begin_, size());
-        end_ = begin_;
-    }
-
-    T* data()
-    {
-        return begin_;
-    }
-
-    const T* cdata() const
-    {
-        return begin_;
-    }
-
-    [[nodiscard]] usize size() const
-    {
-        return end_ - begin_;
-    }
-
-    [[nodiscard]] bool empty() const
-    {
-        return !size();
-    }
-
-    [[nodiscard]] usize capacity() const
-    {
-        return capacity_ - begin_;
-    }
+    [[nodiscard]] usize size() const;
+    [[nodiscard]] bool  empty() const;
+    [[nodiscard]] usize capacity() const;
 
 private:
-    void ensureCapcity(usize requestedCapacity)
-    {
-        usize currCapacity = capacity();
-        if (requestedCapacity <= capacity())
-        {
-            return;
-        }
-
-        currCapacity *= 1.5;
-
-        currCapacity = std::max(requestedCapacity, currCapacity);
-
-        usize currSize = size();
-        begin_ = storage_.resize(begin_, currCapacity);
-        end_ = begin_ + currSize;
-        capacity_ = begin_ + currCapacity;
-    }
+    void ensureCapcity(usize requestedCapacity);
 
     template<typename OtherStorage>
-    void moveOrCopyFrom(IVector<T, OtherStorage>&& other)
-    {
-        if constexpr (mm::CanMoveBetweenStorage<Storage, OtherStorage>::value)
-        {
-            storage_.free(begin_);
+    void moveOrCopyFrom(IVector<T, OtherStorage>&& other);
 
-            begin_ = other.begin_;
-            end_ = other.end_;
-            capacity_ = other.capacity_;
-
-            other.begin_ = nullptr;
-            other.end_ = nullptr;
-            other.capacity_ = nullptr;
-        }
-        else
-        {
-            copyFrom(other.begin(), other.size());
-        }
-    }
-
-    void copyFrom(const T* src, usize count)
-    {
-        ensureCapcity(count);
-        end_ = begin_ + count;
-        if constexpr (IsBitwiseConstrutable<T>::value)
-        {
-            memcpy(begin(), src, count * sizeof(T));
-            return;
-        }
-        constructElems(src, count);
-    }
-
-    void destructElems(T* begin, usize count)
-    {
-        if constexpr (!IsTriviallyDestructible<T>::value)
-        {
-            while (count)
-            {
-                begin->~T();
-                begin++;
-                count--;
-            }
-        }
-    }
-
-    void constructElems(const T* otherData, usize count)
-    {
-        T* it = begin();
-        while (count)
-        {
-            ::new (static_cast<void*>(it)) T(*otherData);
-            count--;
-            it++;
-        }
-    }
-
-    void defaultConstructElems(T* begin, usize count)
-    {
-        if constexpr (IsZeroInitializable<T>::value)
-        {
-            std::memset(begin, 0, sizeof(T) * count);
-            return;
-        }
-
-        MK_ASSERT(count >= 0);
-        while (count)
-        {
-            ::new (static_cast<void*>(begin)) T;
-            count--;
-            begin++;
-        }
-    }
+    void copyFrom(const T* src, usize count);
+    void destructElems(T* begin, usize count);
+    void constructElems(const T* otherData, usize count);
+    void defaultConstructElems(T* begin, usize count);
 
     Storage storage_;
     T*      begin_ = nullptr;
@@ -341,62 +112,28 @@ public:
     {
     }
 
-    const T& operator[](int i) const
-    {
-        MK_ASSERT(i < end_ - begin_);
-        return begin_[i];
-    }
+    const T& operator[](int i) const;
+    T&       operator[](int i);
 
-    T& operator[](int i)
-    {
-        MK_ASSERT(i < end_ - begin_);
-        return begin_[i];
-    }
+    const T* cdata() const;
+    const T* data();
+    const T* cbegin() const;
+    const T* cend() const;
+    T*       begin();
+    T*       end();
 
-    const T* cdata() const
-    {
-        return begin_;
-    }
-
-    const T* data()
-    {
-        return begin_;
-    }
-
-    const T* cbegin() const
-    {
-        return begin_;
-    }
-
-    const T* cend() const
-    {
-        return end_;
-    }
-
-    T* begin()
-    {
-        return begin_;
-    }
-
-    T* end()
-    {
-        return end_;
-    }
-
-    usize size() const
-    {
-        return end_ - begin_;
-    }
-
-    [[nodiscard]] bool empty() const
-    {
-        return !size();
-    }
+    usize              size() const;
+    [[nodiscard]] bool empty() const;
 
 private:
     T* begin_;
     T* end_;
 };
 
+template<typename T>
+VectorView<const byte> asBytes(VectorView<T> view);
+
 } // namespace mk
-//
+#define MK_VECTOR_IMPL
+#include <core/container/IVector.inl>
+#undef MK_VECTOR_IMPL
