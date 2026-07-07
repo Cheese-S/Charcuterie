@@ -156,15 +156,15 @@ void LogSystem::log(LogCategory                     category,
                                               fmt,                             \
                                               __VA_ARGS__);
 
-#define MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(res, fmt, ...)  \
-    do                                                    \
-    {                                                     \
-        Result MK_CONCAT(x, __LINE__) = res;              \
-        if (isNotOk(MK_CONCAT(x, __LINE__)))              \
-        {                                                 \
-            MK_LOG_ERROR(fmt __VA_OPT__(, ) __VA_ARGS__); \
-            return MK_CONCAT(x, __LINE__);                \
-        }                                                 \
+#define MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(res, fmt, ...)                                      \
+    do                                                                                        \
+    {                                                                                         \
+        Result MK_CONCAT(result, __LINE__) = res;                                             \
+        if (isNotOk(MK_CONCAT(result, __LINE__)))                                             \
+        {                                                                                     \
+            MK_LOG_ERROR(fmt "({})" __VA_OPT__(, ) __VA_ARGS__, MK_CONCAT(result, __LINE__)); \
+            return MK_CONCAT(result, __LINE__);                                               \
+        }                                                                                     \
     } while (0)
 
 #define MK_LOG_ERROR_AND_RETURN_RET_IF_FALSE(x, ret, fmt, ...) \
