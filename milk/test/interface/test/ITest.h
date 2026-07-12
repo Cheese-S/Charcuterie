@@ -1,26 +1,34 @@
 #pragma once
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <core/IAppContext.h>
 #include <core/log/ISink.h>
 #include <core/log/IFormatter.h>
 #include <core/log/ILog.h>
 #include <core/IUniquePtr.h>
 
+#include <core/filesystem/IVfs.h>
+
 namespace mk
 {
 
-// NOLINTNEXTLINE
-UniquePtr<log::LogSystem> gLogManager_ = nullptr;
-
 #define EXPECT_OK(res)     EXPECT_TRUE(isOk((res)))
 #define EXPECT_NOT_OK(res) EXPECT_TRUE(isNotOk((res)))
+#define ASSERT_OK(res)     ASSERT_TRUE(isOk((res)))
 
-class MilkTest: public ::testing::Test
+class MilkEnvironment: public ::testing::Environment
 {
-protected:
-    static void SetUpTestSuite()
+public:
+    explicit MilkEnvironment(StringView testName): testName_(testName) {}
+
+    void SetUp() override
     {
+        Result res = fs::Vfs::makeVfs(testName_, vfs_);
+        EXPECT_OK(res);
+
+        AppContext<fs::IVfs>::registerIntsance(vfs_.get());
+
         FixedVector<UniquePtr<log::ISink>, 2> sinks;
         sinks.push(makeUnique<log::ConsoleSink>());
         sinks.push(makeUnique<log::DebugSink>());
@@ -29,18 +37,29 @@ protected:
                                         .sinks = sinks,
                                         .userFlagFormatters = {} };
 
-        EXPECT_OK(log::LogSystem::makeLogSystem(config, gLogManager_));
+        EXPECT_OK(log::LogSystem::makeLogSystem(config, logSystem_));
 
-        AppContext<log::LogSystem>::registerIntsance(gLogManager_.get());
+        AppContext<log::LogSystem>::registerIntsance(logSystem_.get());
     }
 
-    static void TearDownTestSuite()
+    void TearDown() override
     {
-        log::LogSystem* logSystem = gLogManager_.release();
-        delete logSystem;
         AppContext<log::LogSystem>::unregisterInstance();
+        AppContext<fs::IVfs>::unregisterInstance();
     }
 
 private:
+    StringView                testName_;
+    UniquePtr<log::LogSystem> logSystem_;
+    UniquePtr<fs::IVfs>       vfs_;
 };
+
 } // namespace mk
+
+#define MK_FULL_MAIN()                                                                        \
+    int main(int argc, char** argv)                                                           \
+    {                                                                                         \
+        ::testing::AddGlobalTestEnvironment(new ::mk::MilkEnvironment("test_out/" __FILE__)); \
+        ::testing::InitGoogleMock(&argc, argv);                                               \
+        return RUN_ALL_TESTS();                                                               \
+    } // namespace mk

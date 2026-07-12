@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <thread>
 #include <vector>
 #include <atomic>
@@ -206,3 +206,4 @@ TEST(WordLock, ProducerConsumerHandoff)
     EXPECT_EQ(mismatches.load(), 0);
 }
 } // namespace mk::cc
+MK_SIMPLE_MAIN()

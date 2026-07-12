@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <core/ISharedPtr.h>
 #include <core/IUniquePtr.h>
 
@@ -810,3 +810,4 @@ TEST_F(TrackerMtTest, RefCountIntegrityUnderContention)
 }
 
 } // namespace mk
+MK_SIMPLE_MAIN()

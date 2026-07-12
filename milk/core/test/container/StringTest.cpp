@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <core/container/IString.h>
 
 namespace mk
@@ -519,3 +519,4 @@ TEST(StringViewEquality, UnequalLengths)
 }
 
 } // namespace mk
+MK_SIMPLE_MAIN()

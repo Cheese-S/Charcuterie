@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <core/math/IMlm.h>
 
 namespace mk::mlm
@@ -276,3 +276,4 @@ TEST(Mat4Test, MatrixMatrixMultiplyIdentityPreservesAllElements)
 // }
 
 } // namespace mk::mlm
+MK_SIMPLE_MAIN()

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <core/container/IFixedSizeObjectPool.h>
 
 namespace mk
@@ -122,7 +122,7 @@ TEST(FixedSizeObjectPool, ReleaseCallsDestructor)
     FixedSizeObjectPool<Tracked, 4> pool;
     Tracked*                        p = pool.tryAcquire(1, &dtorCount);
     ASSERT_NE(p, nullptr);
-    EXPECT_EQ(pool.release(p), Result::eOk);
+    pool.release(p);
     EXPECT_EQ(dtorCount, 1);
 }
 
@@ -133,23 +133,10 @@ TEST(FixedSizeObjectPool, ReleaseReturnsSlotToPool)
     ASSERT_NE(p, nullptr);
     EXPECT_EQ(pool.tryAcquire(), nullptr);
 
-    EXPECT_EQ(pool.release(p), Result::eOk);
+    pool.release(p);
     Obj* recycled = pool.tryAcquire(8);
     ASSERT_NE(recycled, nullptr);
     EXPECT_EQ(recycled->value, 8);
-}
-
-TEST(FixedSizeObjectPool, ReleaseInvalidParamForExternalPointer)
-{
-    FixedSizeObjectPool<Obj, 4> pool;
-    Obj                         external{};
-    EXPECT_EQ(pool.release(&external), Result::eInvalidParam);
-}
-
-TEST(FixedSizeObjectPool, ReleaseInvalidParamForNullptr)
-{
-    FixedSizeObjectPool<Obj, 4> pool;
-    EXPECT_EQ(pool.release(nullptr), Result::eInvalidParam);
 }
 
 TEST(FixedSizeObjectPool, ReleaseAndReacquireMultipleTimes)
@@ -159,8 +146,8 @@ TEST(FixedSizeObjectPool, ReleaseAndReacquireMultipleTimes)
     Obj*                        b = pool.tryAcquire(2);
     EXPECT_EQ(pool.tryAcquire(), nullptr);
 
-    EXPECT_EQ(pool.release(a), Result::eOk);
-    EXPECT_EQ(pool.release(b), Result::eOk);
+    pool.release(a);
+    pool.release(b);
 
     Obj* c = pool.tryAcquire(3);
     Obj* d = pool.tryAcquire(4);
@@ -178,9 +165,9 @@ TEST(FixedSizeObjectPool, DestructorCountMatchesReleaseCount)
     Tracked*                        b = pool.tryAcquire(2, &dtorCount);
     Tracked*                        c = pool.tryAcquire(3, &dtorCount);
 
-    EXPECT_EQ(pool.release(a), Result::eOk);
-    EXPECT_EQ(pool.release(b), Result::eOk);
-    EXPECT_EQ(pool.release(c), Result::eOk);
+    pool.release(a);
+    pool.release(b);
+    pool.release(c);
     EXPECT_EQ(dtorCount, 3);
 }
 

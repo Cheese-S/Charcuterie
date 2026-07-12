@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 
 #include <algorithm>
 #include <atomic>
@@ -65,8 +65,7 @@ struct GuardedWidget
 
     ~GuardedWidget()
     {
-        EXPECT_EQ(magic, kLiveMagic)
-            << "Magic corrupt on destruction (value=" << value << ")";
+        EXPECT_EQ(magic, kLiveMagic) << "Magic corrupt on destruction (value=" << value << ")";
         magic = kDeadMagic;
         ++destructions_;
     }
@@ -397,9 +396,7 @@ TEST(LockFreeObjectPool, ProducerConsumerPattern)
                 }
 
                 Widget* expected = nullptr;
-                while (!handoff.compare_exchange_weak(expected,
-                                                      w,
-                                                      std::memory_order_release))
+                while (!handoff.compare_exchange_weak(expected, w, std::memory_order_release))
                 {
                     expected = nullptr;
                     std::this_thread::yield();
@@ -455,8 +452,7 @@ TEST(LockFreeObjectPoolStress, HammerAcquireRelease)
     StressPool pool(1);
 
     auto           all = drainAll(pool);
-    GuardedWidget* base =
-        all.empty() ? nullptr : *std::min_element(all.begin(), all.end());
+    GuardedWidget* base = all.empty() ? nullptr : *std::min_element(all.begin(), all.end());
     returnAll(pool, all);
     ASSERT_NE(base, nullptr);
 
@@ -517,8 +513,7 @@ TEST(LockFreeObjectPoolStress, HammerAcquireRelease)
         t.join();
     }
 
-    EXPECT_FALSE(doubleAcquire.load())
-        << "Same slot acquired by two threads simultaneously";
+    EXPECT_FALSE(doubleAcquire.load()) << "Same slot acquired by two threads simultaneously";
     EXPECT_GT(acquired.load(), 0) << "No thread ever acquired a slot";
 
     auto remaining = drainAll(pool);
@@ -547,8 +542,7 @@ TEST(LockFreeObjectPoolStress, ConcurrentExhaustionAndRefill)
             roundBarrier.arrive_and_wait();
 
             std::vector<GuardedWidget*> held;
-            for (int attempt = 0; attempt < static_cast<int>(kStressChunkSize) * 2;
-                 ++attempt)
+            for (int attempt = 0; attempt < static_cast<int>(kStressChunkSize) * 2; ++attempt)
             {
                 GuardedWidget* w = pool.tryAcquire(round);
                 if (w)
@@ -727,8 +721,7 @@ TEST(LockFreeObjectPoolStress, SustainedMixedLoad)
     StressPool pool(1);
 
     auto           all = drainAll(pool);
-    GuardedWidget* base =
-        all.empty() ? nullptr : *std::min_element(all.begin(), all.end());
+    GuardedWidget* base = all.empty() ? nullptr : *std::min_element(all.begin(), all.end());
     returnAll(pool, all);
 
     std::array<std::atomic<int>, kStressChunkSize> inUse{};
@@ -791,8 +784,7 @@ TEST(LockFreeObjectPoolStress, SustainedMixedLoad)
         t.join();
     }
 
-    EXPECT_FALSE(corruptionDetected.load())
-        << "Data corruption detected during sustained load";
+    EXPECT_FALSE(corruptionDetected.load()) << "Data corruption detected during sustained load";
     EXPECT_GT(totalAcquired.load(), 0L);
 
     auto remaining = drainAll(pool);
@@ -848,8 +840,7 @@ TEST(LockFreeObjectPoolChunks, SecondChunkAllocatedWhenFirstExhausted)
     }
 
     Widget* fromSecondChunk = pool.tryAcquire(100);
-    EXPECT_NE(fromSecondChunk, nullptr)
-        << "Pool failed to allocate a second chunk on exhaustion";
+    EXPECT_NE(fromSecondChunk, nullptr) << "Pool failed to allocate a second chunk on exhaustion";
 
     if (fromSecondChunk)
     {
@@ -921,9 +912,8 @@ TEST(LockFreeObjectPoolChunks, MaxChunksCountRespectedUnderConcurrentExhaustion)
             int now = currentHeld.fetch_add(1, std::memory_order_acq_rel) + 1;
 
             int expected = peakHeld.load(std::memory_order_relaxed);
-            while (
-                now > expected &&
-                !peakHeld.compare_exchange_weak(expected, now, std::memory_order_relaxed))
+            while (now > expected &&
+                   !peakHeld.compare_exchange_weak(expected, now, std::memory_order_relaxed))
             {
             }
 
@@ -965,8 +955,7 @@ TEST(LockFreeObjectPoolChunks, FreedNodeReusedBeforeNewChunkAllocated)
     slots[0] = nullptr;
 
     Widget* recycled = pool.tryAcquire(42);
-    EXPECT_NE(recycled, nullptr)
-        << "Freed node was not recycled — pool appears to have lost it";
+    EXPECT_NE(recycled, nullptr) << "Freed node was not recycled — pool appears to have lost it";
 
     if (recycled)
     {
@@ -1185,10 +1174,8 @@ TEST(LockFreeObjectPoolIndex, SingleChunkIndicesAreUniqueAndInRange)
         ASSERT_NE(slots[i], nullptr);
 
         usize idx = pool.index(slots[i]);
-        EXPECT_LT(idx, kN) << "Index " << idx << " out of [0, " << kN << ") for slot "
-                           << i;
-        EXPECT_TRUE(seen.insert(idx).second)
-            << "Duplicate index " << idx << " at slot " << i;
+        EXPECT_LT(idx, kN) << "Index " << idx << " out of [0, " << kN << ") for slot " << i;
+        EXPECT_TRUE(seen.insert(idx).second) << "Duplicate index " << idx << " at slot " << i;
     }
 
     for (auto* w : slots)
@@ -1257,9 +1244,8 @@ TEST(LockFreeObjectPoolIndex, MultiChunkIndicesAreGloballyUnique)
         ASSERT_NE(w, nullptr) << "Expected slot " << i << " to be available";
 
         usize idx = pool.index(w);
-        EXPECT_TRUE(seen.insert(idx).second)
-            << "Duplicate index " << idx << " returned for slot " << i
-            << " (possible chunk aliasing)";
+        EXPECT_TRUE(seen.insert(idx).second) << "Duplicate index " << idx << " returned for slot "
+                                             << i << " (possible chunk aliasing)";
 
         held.push_back(w);
     }
@@ -1326,8 +1312,8 @@ TEST(LockFreeObjectPoolIndex, ConcurrentIndexUniqueness)
 
             // Brief critical section: stamp and verify as in the stress suite.
             w->stamp(tid);
-            EXPECT_TRUE(w->verifyStamp(tid)) << "Stamp mismatch at index " << idx
-                                             << " (another thread is sharing our slot)";
+            EXPECT_TRUE(w->verifyStamp(tid))
+                << "Stamp mismatch at index " << idx << " (another thread is sharing our slot)";
 
             inUse[idx].store(0, std::memory_order_release);
             pool.release(w);
@@ -1352,3 +1338,4 @@ TEST(LockFreeObjectPoolIndex, ConcurrentIndexUniqueness)
 }
 
 } // namespace mk::test
+MK_SIMPLE_MAIN();

@@ -1,10 +1,9 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <atomic>
 #include <chrono>
 #include <thread>
 #include <vector>
 #include <core/concurrency/ISharedMutex.h>
-#include "core/IAssert.h"
 
 namespace mk::cc
 {
@@ -195,9 +194,7 @@ TEST(SharedMutex, MultipleReadersRunConcurrently)
                 // update max observed concurrency
                 int expected = maxInside.load(std::memory_order_relaxed);
                 while (val > expected &&
-                       !maxInside.compare_exchange_weak(expected,
-                                                        val,
-                                                        std::memory_order_relaxed))
+                       !maxInside.compare_exchange_weak(expected, val, std::memory_order_relaxed))
                 {
                 }
 
@@ -501,7 +498,7 @@ TEST(SharedMutex, TryLockFailsWhenExclusiveLockHeld)
     mtx.lock();
 
     std::atomic<bool> result{ true };
-    std::thread t([&]() { result.store(mtx.tryLock(), std::memory_order_relaxed); });
+    std::thread       t([&]() { result.store(mtx.tryLock(), std::memory_order_relaxed); });
     t.join();
 
     EXPECT_FALSE(result.load());
@@ -554,8 +551,7 @@ TEST(SharedMutex, TryLockWithTimeoutSucceedsWhenLockBecomesAvailable)
         [&]()
         {
             // Allow up to 500 ms — the main thread releases after ~20 ms.
-            result.store(mtx.tryLock(std::chrono::milliseconds(500)),
-                         std::memory_order_relaxed);
+            result.store(mtx.tryLock(std::chrono::milliseconds(500)), std::memory_order_relaxed);
             if (result.load(std::memory_order_relaxed))
             {
                 mtx.unlock();
@@ -579,10 +575,7 @@ TEST(SharedMutex, TryLockWithTimeoutFailsWhenTimeoutExpires)
     std::atomic<bool> result{ true };
     std::thread       t(
         [&]()
-        {
-            result.store(mtx.tryLock(std::chrono::milliseconds(30)),
-                         std::memory_order_relaxed);
-        });
+        { result.store(mtx.tryLock(std::chrono::milliseconds(30)), std::memory_order_relaxed); });
     t.join();
 
     EXPECT_FALSE(result.load());
@@ -633,8 +626,7 @@ TEST(SharedMutex, TryLockSharedFailsWhenExclusiveLockHeld)
     mtx.lock();
 
     std::atomic<bool> result{ true };
-    std::thread       t([&]()
-                  { result.store(mtx.tryLockShared(), std::memory_order_relaxed); });
+    std::thread       t([&]() { result.store(mtx.tryLockShared(), std::memory_order_relaxed); });
     t.join();
 
     EXPECT_FALSE(result.load());
@@ -830,3 +822,4 @@ TEST(SharedMutex, TryVariantsMixedStressNoDataRace)
 }
 
 } // namespace mk::cc
+MK_SIMPLE_MAIN()

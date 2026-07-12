@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include <test/ISimpleTest.h>
+
 #include <core/log/IFormatter.h>
 #include <core/log/ISink.h>
 #include <core/log/Log.h>
@@ -595,7 +595,7 @@ TEST(CompilePattern, ValidPatternCompilesOk)
     flagMap['l'] = makeUnique<LevelFormater>();
 
     LogSystem::FormatterVector formatters;
-    Result result = compilePattern(StringView("%l %v"), flagMap, formatters);
+    Result                     result = compilePattern(StringView("%l %v"), flagMap, formatters);
     EXPECT_EQ(result, Result::eOk);
     // LevelFormatter + LiteralFormatter(" ") + UserMsgFormatter
     EXPECT_EQ(formatters.size(), 3U);
@@ -607,7 +607,7 @@ TEST(CompilePattern, UnknownFlagReturnsError)
     flagMap.resize(256);
 
     LogSystem::FormatterVector formatters;
-    Result result = compilePattern(StringView("%Z"), flagMap, formatters);
+    Result                     result = compilePattern(StringView("%Z"), flagMap, formatters);
     EXPECT_EQ(result, Result::eInvalidParam);
 }
 
@@ -629,7 +629,7 @@ TEST(CompilePattern, LeftPaddingSpecifierParsed)
     flagMap['v'] = makeUnique<UserMsgFormatter>();
 
     LogSystem::FormatterVector formatters;
-    Result result = compilePattern(StringView("%-10v"), flagMap, formatters);
+    Result                     result = compilePattern(StringView("%-10v"), flagMap, formatters);
     EXPECT_EQ(result, Result::eOk);
     ASSERT_EQ(formatters.size(), 1U);
     EXPECT_EQ(formatters[0]->pad.count, 10);
@@ -643,7 +643,7 @@ TEST(CompilePattern, RightPaddingSpecifierParsed)
     flagMap['v'] = makeUnique<UserMsgFormatter>();
 
     LogSystem::FormatterVector formatters;
-    Result result = compilePattern(StringView("%8v"), flagMap, formatters);
+    Result                     result = compilePattern(StringView("%8v"), flagMap, formatters);
     EXPECT_EQ(result, Result::eOk);
     ASSERT_EQ(formatters.size(), 1U);
     EXPECT_EQ(formatters[0]->pad.count, 8);
@@ -674,10 +674,8 @@ TEST(LogManagerCreation, NoSinksReturnsError)
     UniquePtr<LogSystem>          manager;
     VectorView<ISinkPtr>          emptySinks;
     VectorView<FlagFormatterPair> noUserFormatters;
-    Result                        result = LogSystem::makeLogSystem(StringView("%l %v"),
-                                             emptySinks,
-                                             noUserFormatters,
-                                             manager);
+    Result                        result =
+        LogSystem::makeLogSystem(StringView("%l %v"), emptySinks, noUserFormatters, manager);
     EXPECT_EQ(result, Result::eInvalidParam);
     EXPECT_FALSE(manager);
 }
@@ -700,8 +698,7 @@ TEST(LogManagerCreation, InvalidPatternFlagReturnsError)
     sinks.push(makeUnique<ConsoleSink>());
     VectorView<FlagFormatterPair> noUserFormatters;
     UniquePtr<LogSystem>          manager;
-    Result                        result =
-        LogSystem::makeLogSystem(StringView("%Z"), sinks, noUserFormatters, manager);
+    Result result = LogSystem::makeLogSystem(StringView("%Z"), sinks, noUserFormatters, manager);
     EXPECT_EQ(result, Result::eInvalidParam);
     EXPECT_FALSE(manager);
 }

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -9,7 +9,7 @@ namespace mk::cc
 {
 
 using Clock = std::chrono::steady_clock;
-using TimePoint = ParkingLot::TimePoint;
+using TimePoint = util::TimePoint;
 
 namespace
 {
@@ -71,8 +71,7 @@ TEST(ParkingLot, BeforeSleepCalledWhenParking)
 
     ParkingLot::unparkOne(&addr,
                           0xFFFFFFFFU,
-                          [](UnparkResult result)
-                          { EXPECT_EQ(result, UnparkResult::eNoneLeft); });
+                          [](UnparkResult result) { EXPECT_EQ(result, UnparkResult::eNoneLeft); });
 
     parker.join();
     EXPECT_TRUE(beforeSlept.load());
@@ -86,12 +85,8 @@ TEST(ParkingLot, ParkUntilExpiredDeadlineReturnsTimeout)
 {
     int addr = 0;
 
-    ParkResult result = ParkingLot::parkUntil(
-        &addr,
-        0xFFFFFFFFU,
-        []() { return true; },
-        []() {},
-        expired());
+    ParkResult result =
+        ParkingLot::parkUntil(&addr, 0xFFFFFFFFU, []() { return true; }, []() {}, expired());
 
     EXPECT_EQ(result, ParkResult::eTimeout);
 }
@@ -100,12 +95,8 @@ TEST(ParkingLot, ParkUntilShortDeadlineReturnsTimeout)
 {
     int addr = 0;
 
-    ParkResult result = ParkingLot::parkUntil(
-        &addr,
-        0xFFFFFFFFU,
-        []() { return true; },
-        []() {},
-        deadline(30));
+    ParkResult result =
+        ParkingLot::parkUntil(&addr, 0xFFFFFFFFU, []() { return true; }, []() {}, deadline(30));
 
     EXPECT_EQ(result, ParkResult::eTimeout);
 }
@@ -138,8 +129,7 @@ TEST(ParkingLot, UnparkOneWakesParkedThread)
 
     ParkingLot::unparkOne(&addr,
                           0xFFFFFFFFU,
-                          [](UnparkResult result)
-                          { EXPECT_EQ(result, UnparkResult::eNoneLeft); });
+                          [](UnparkResult result) { EXPECT_EQ(result, UnparkResult::eNoneLeft); });
 
     parker.join();
     EXPECT_EQ(parkResult, ParkResult::eUnparked);
@@ -312,8 +302,7 @@ TEST(ParkingLot, UnparkDoesNotWakeThreadWithNonMatchingMask)
 
     ParkingLot::unparkOne(&addr,
                           kMaskB,
-                          [](UnparkResult result)
-                          { EXPECT_EQ(result, UnparkResult::eNotFound); });
+                          [](UnparkResult result) { EXPECT_EQ(result, UnparkResult::eNotFound); });
 
     parker.join();
     EXPECT_EQ(parkResult, ParkResult::eTimeout);
@@ -344,8 +333,7 @@ TEST(ParkingLot, UnparkWakesThreadWithMatchingMask)
 
     ParkingLot::unparkOne(&addr,
                           0xFFU,
-                          [](UnparkResult result)
-                          { EXPECT_EQ(result, UnparkResult::eNoneLeft); });
+                          [](UnparkResult result) { EXPECT_EQ(result, UnparkResult::eNoneLeft); });
 
     parker.join();
     EXPECT_EQ(parkResult, ParkResult::eUnparked);
@@ -380,11 +368,11 @@ TEST(ParkingLot, UnparkOnDifferentAddressDoesNotWake)
 
     ParkingLot::unparkOne(&addrB,
                           0xFFFFFFFFU,
-                          [](UnparkResult result)
-                          { EXPECT_EQ(result, UnparkResult::eNotFound); });
+                          [](UnparkResult result) { EXPECT_EQ(result, UnparkResult::eNotFound); });
 
     parker.join();
     EXPECT_EQ(parkResult, ParkResult::eTimeout);
 }
 
 } // namespace mk::cc
+MK_SIMPLE_MAIN()

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 
 #include <atomic>
 #include <chrono>
@@ -19,7 +19,7 @@ TEST(Condition, NotifyOneWakesSingleWaiter)
 {
     SharedMutex            mutex;
     Condition<SharedMutex> cond;
-    ConditionResult        result = ConditionResult::eTimeout;
+    Result                 result = Result::eTimeout;
     bool                   ready = false;
     std::atomic<int>       waitingCount = { 0 };
 
@@ -30,7 +30,7 @@ TEST(Condition, NotifyOneWakesSingleWaiter)
             waitingCount.fetch_add(1);
             while (!ready)
             {
-                result = cond.wait(mutex, Condition<SharedMutex>::kForever);
+                result = cond.wait(mutex, util::kForever);
             }
             mutex.unlock();
         });
@@ -45,7 +45,7 @@ TEST(Condition, NotifyOneWakesSingleWaiter)
     cond.notifyOne();
     waiter.join();
 
-    EXPECT_EQ(result, ConditionResult::eNoTimeout);
+    EXPECT_EQ(result, Result::eOk);
 }
 
 TEST(Condition, NotifyAllWakesAllWaiters)
@@ -68,7 +68,7 @@ TEST(Condition, NotifyAllWakesAllWaiters)
                 waitingCount.fetch_add(1);
                 while (!ready)
                 {
-                    cond.wait(mutex, Condition<SharedMutex>::kForever);
+                    MK_UNREF(cond.wait(mutex, util::kForever));
                 }
                 woken.fetch_add(1);
                 mutex.unlock();
@@ -111,7 +111,7 @@ TEST(Condition, NotifyOneWakesExactlyOne)
                 waitingCount.fetch_add(1);
                 while (tokensAvailable == 0)
                 {
-                    cond.wait(mutex, Condition<SharedMutex>::kForever);
+                    MK_UNREF(cond.wait(mutex, util::kForever));
                 }
                 --tokensAvailable;
                 mutex.unlock();
@@ -159,12 +159,12 @@ TEST(Condition, WaitExpiresAfterDuration)
 
     // No notifier — wait() must return eTimeout on its own
     mutex.lock();
-    auto            start = std::chrono::steady_clock::now();
-    ConditionResult result = cond.wait(mutex, std::chrono::milliseconds(30));
-    auto            elapsed = std::chrono::steady_clock::now() - start;
+    auto   start = std::chrono::steady_clock::now();
+    Result result = cond.wait(mutex, std::chrono::milliseconds(30));
+    auto   elapsed = std::chrono::steady_clock::now() - start;
     mutex.unlock();
 
-    EXPECT_EQ(result, ConditionResult::eTimeout);
+    EXPECT_EQ(result, Result::eTimeout);
     EXPECT_GE(elapsed, std::chrono::milliseconds(30));
 }
 
@@ -174,17 +174,17 @@ TEST(Condition, ZeroDurationReturnsImmediately)
     Condition<SharedMutex> cond;
 
     mutex.lock();
-    ConditionResult result = cond.wait(mutex, SharedMutex::kImmediate);
+    Result result = cond.wait(mutex, util::kImmediate);
     mutex.unlock();
 
-    EXPECT_EQ(result, ConditionResult::eTimeout);
+    EXPECT_EQ(result, Result::eTimeout);
 }
 
 TEST(Condition, NotifyBeforeTimeoutReturnsNoTimeout)
 {
     SharedMutex            mutex;
     Condition<SharedMutex> cond;
-    ConditionResult        result = ConditionResult::eTimeout;
+    Result                 result = Result::eTimeout;
     bool                   ready = false;
     std::atomic<int>       waitingCount = { 0 };
 
@@ -196,7 +196,7 @@ TEST(Condition, NotifyBeforeTimeoutReturnsNoTimeout)
             while (!ready)
             {
                 result = cond.wait(mutex, std::chrono::milliseconds(200));
-                if (result == ConditionResult::eTimeout)
+                if (result == Result::eTimeout)
                 {
                     break;
                 }
@@ -214,7 +214,7 @@ TEST(Condition, NotifyBeforeTimeoutReturnsNoTimeout)
     cond.notifyOne();
     waiter.join();
 
-    EXPECT_EQ(result, ConditionResult::eNoTimeout);
+    EXPECT_EQ(result, Result::eOk);
 }
 
 TEST(Condition, NotifyVsTimeoutRaceNeverHangs)
@@ -235,9 +235,8 @@ TEST(Condition, NotifyVsTimeoutRaceNeverHangs)
                 mutex.lock();
                 while (!ready)
                 {
-                    ConditionResult result =
-                        cond.wait(mutex, std::chrono::microseconds(1));
-                    if (result == ConditionResult::eTimeout)
+                    Result result = cond.wait(mutex, std::chrono::microseconds(1));
+                    if (result == Result::eTimeout)
                     {
                         break;
                     }
@@ -261,7 +260,7 @@ TEST(Condition, NotifyOneWithoutLockWakesWaiter)
 {
     SharedMutex            mutex;
     Condition<SharedMutex> cond;
-    ConditionResult        result = ConditionResult::eTimeout;
+    Result                 result = Result::eTimeout;
     bool                   ready = false;
     std::atomic<int>       waitingCount = { 0 };
 
@@ -272,7 +271,7 @@ TEST(Condition, NotifyOneWithoutLockWakesWaiter)
             waitingCount.fetch_add(1);
             while (!ready)
             {
-                result = cond.wait(mutex, Condition<SharedMutex>::kForever);
+                result = cond.wait(mutex, util::kForever);
             }
             mutex.unlock();
         });
@@ -288,14 +287,14 @@ TEST(Condition, NotifyOneWithoutLockWakesWaiter)
     cond.notifyOne();
     waiter.join();
 
-    EXPECT_EQ(result, ConditionResult::eNoTimeout);
+    EXPECT_EQ(result, Result::eOk);
 }
 
 TEST(Condition, NotifyOneWithLockHeldWakesWaiter)
 {
     SharedMutex            mutex;
     Condition<SharedMutex> cond;
-    ConditionResult        result = ConditionResult::eTimeout;
+    Result                 result = Result::eTimeout;
     bool                   ready = false;
     std::atomic<int>       waitingCount = { 0 };
 
@@ -306,7 +305,7 @@ TEST(Condition, NotifyOneWithLockHeldWakesWaiter)
             waitingCount.fetch_add(1);
             while (!ready)
             {
-                result = cond.wait(mutex, Condition<SharedMutex>::kForever);
+                result = cond.wait(mutex, util::kForever);
             }
             mutex.unlock();
         });
@@ -321,7 +320,7 @@ TEST(Condition, NotifyOneWithLockHeldWakesWaiter)
     mutex.unlock();
     waiter.join();
 
-    EXPECT_EQ(result, ConditionResult::eNoTimeout);
+    EXPECT_EQ(result, Result::eOk);
 }
 
 TEST(Condition, NotifyWithNoWaitersIsSafe)
@@ -334,7 +333,7 @@ TEST(Condition, NotifyWithNoWaitersIsSafe)
     cond.notifyAll();
 
     // Condition must still work correctly after the spurious notifies
-    ConditionResult  result = ConditionResult::eTimeout;
+    Result           result = Result::eTimeout;
     bool             ready = false;
     std::atomic<int> waitingCount = { 0 };
 
@@ -345,7 +344,7 @@ TEST(Condition, NotifyWithNoWaitersIsSafe)
             waitingCount.fetch_add(1);
             while (!ready)
             {
-                result = cond.wait(mutex, Condition<SharedMutex>::kForever);
+                result = cond.wait(mutex, util::kForever);
             }
             mutex.unlock();
         });
@@ -360,7 +359,7 @@ TEST(Condition, NotifyWithNoWaitersIsSafe)
     cond.notifyOne();
     waiter.join();
 
-    EXPECT_EQ(result, ConditionResult::eNoTimeout);
+    EXPECT_EQ(result, Result::eOk);
 }
 
 TEST(Condition, RepeatedCyclesNoStateLeakage)
@@ -373,15 +372,15 @@ TEST(Condition, RepeatedCyclesNoStateLeakage)
     {
         bool             ready = false;
         std::atomic<int> waitingCount = { 0 };
-
-        std::thread waiter(
+        Result           res;
+        std::thread      waiter(
             [&]()
             {
                 mutex.lock();
                 waitingCount.fetch_add(1);
                 while (!ready)
                 {
-                    cond.wait(mutex, Condition<SharedMutex>::kForever);
+                    res = cond.wait(mutex, util::kForever);
                 }
                 mutex.unlock();
             });
@@ -418,7 +417,7 @@ TEST(Condition, MutexReleasedWhileWaiting)
             waitingCount.fetch_add(1);
             while (!shouldWake)
             {
-                cond.wait(mutex, Condition<SharedMutex>::kForever);
+                MK_UNREF(cond.wait(mutex, util::kForever));
             }
             mutex.unlock();
         });
@@ -461,7 +460,7 @@ TEST(Condition, MutexReacquiredOnWakeup)
             waitingCount.fetch_add(1);
             while (!shouldWake)
             {
-                cond.wait(mutex, Condition<SharedMutex>::kForever);
+                MK_UNREF(cond.wait(mutex, util::kForever));
             }
             // wait() must have re-acquired the mutex before returning
             waiterHoldsLock = true;
@@ -510,7 +509,7 @@ TEST(Condition, NotifyOneWakesOneAtATime)
                 waitingCount.fetch_add(1);
                 while (tokensAvailable == 0)
                 {
-                    cond.wait(mutex, Condition<SharedMutex>::kForever);
+                    MK_UNREF(cond.wait(mutex, util::kForever));
                 }
                 --tokensAvailable;
                 mutex.unlock();
@@ -558,7 +557,7 @@ TEST(Condition, PredicateLoopPatternWakesAll)
                 waitingCount.fetch_add(1);
                 while (!ready)
                 {
-                    cond.wait(mutex, Condition<SharedMutex>::kForever);
+                    MK_UNREF(cond.wait(mutex, util::kForever));
                 }
                 woken.fetch_add(1);
                 mutex.unlock();
@@ -614,7 +613,7 @@ TEST(Condition, NoLostWakeupUnderRace)
                 mutex.lock();
                 while (!ready)
                 {
-                    cond.wait(mutex, std::chrono::milliseconds(50));
+                    MK_UNREF(cond.wait(mutex, std::chrono::milliseconds(50)));
                 }
                 mutex.unlock();
             });
@@ -645,7 +644,7 @@ TEST(Condition, ManyProducersManyConsumers)
                 waitingCount.fetch_add(1);
                 while (tokensAvailable == 0)
                 {
-                    cond.wait(mutex, Condition<SharedMutex>::kForever);
+                    MK_UNREF(cond.wait(mutex, util::kForever));
                 }
                 --tokensAvailable;
                 woken.fetch_add(1);
@@ -685,3 +684,4 @@ TEST(Condition, ManyProducersManyConsumers)
 }
 
 } // namespace mk::cc
+MK_SIMPLE_MAIN()

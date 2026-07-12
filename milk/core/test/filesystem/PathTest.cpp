@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <core/filesystem/IPath.h>
 
 namespace mk::fs
@@ -229,3 +229,4 @@ TEST(PathParent, HasNoParent)
 }
 
 } // namespace mk::fs
+MK_SIMPLE_MAIN()

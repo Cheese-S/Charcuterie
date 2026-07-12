@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
+#include <core/container/IString.h>
 #include <core/io/IBufferedWriter.h>
-#include <test/ITest.h>
 #include <cstring>
 
 namespace mk::io
@@ -14,7 +14,7 @@ static T readAs(const byte* ptr)
     return val;
 }
 
-class BufferedWriterTest: public MilkTest
+class BufferedWriterTest: public ::testing::Test
 {
 protected:
     BufferedWriter writer_;
@@ -214,3 +214,4 @@ TEST_F(BufferedWriterTest, BoundaryValues)
 }
 
 } // namespace mk::io
+MK_SIMPLE_MAIN()

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <core/container/IVector.h>
 #include <array>
 
@@ -480,5 +480,5 @@ TEST(AsBytesTest, SizeIsCorrect)
 
     EXPECT_EQ(bytes.size(), data.size() * sizeof(double));
 }
-
 } // namespace mk
+MK_SIMPLE_MAIN()

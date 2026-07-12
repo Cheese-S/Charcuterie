@@ -73,7 +73,7 @@ function (add_test name)
     )   
     target_compile_options(${name} PUBLIC ${cc_compile_options})
     target_link_libraries(${name} PUBLIC
-        GTest::gtest_main
+        GTest::gtest
         GTest::gmock
         ${ARG_LIBS})
     target_include_directories(${name} PUBLIC ${ARG_INCLUDES})

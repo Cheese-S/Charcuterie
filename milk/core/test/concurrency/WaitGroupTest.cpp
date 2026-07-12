@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 #include <thread>
 #include <atomic>
 #include <chrono>
 #include <vector>
 
 #include <core/concurrency/jobsystem/IWaitGroup.h>
-#include "core/log/IRawLog.h"
 
 // NOTE: These tests are written assuming the intended semantics
 // (decrement by 1 before parking, increment by 1 after waking).
@@ -593,3 +592,4 @@ TEST_F(WaitGroupTest, wakeOneIfNoActiveThreadsRacesWithWait)
 }
 
 } // namespace mk::cc
+MK_SIMPLE_MAIN()

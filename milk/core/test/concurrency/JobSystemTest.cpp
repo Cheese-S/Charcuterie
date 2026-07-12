@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
-#include <core/concurrency/jobsystem/IJobSystem.h>
 #include <test/ITest.h>
+#include <core/concurrency/jobsystem/IJobSystem.h>
 #include <atomic>
 #include <vector>
 #include <mutex>
@@ -38,16 +37,14 @@ private:
     u32      id_;
 };
 
-class JobSystemTest: public MilkTest
+class JobSystemTest: public ::testing::Test
 {
 protected:
     static constexpr JobPoolSizeConfig kPoolConfig = { .smallJobPoolSize = 20240,
                                                        .mediumJobPoolSize = 512,
                                                        .largeJobPoolSize = 256 };
 
-    JobSystemTest(): job_system_({ .numForegroundThreads = 4, .numBackgorundThreads = 2 })
-    {
-    }
+    JobSystemTest(): job_system_({ .numForegroundThreads = 4, .numBackgorundThreads = 2 }) {}
 
     JobSystem<kPoolConfig> job_system_;
 };
@@ -132,8 +129,7 @@ TEST_F(JobSystemDependencyTest, ForegroundJobFinishes)
 
 TEST_F(JobSystemDependencyTest, BackgroundJobFinishes)
 {
-    JobHandle h =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eBackgroundHigh, ctx_, 1U);
+    JobHandle h = allocJob<OrderTrackingJob>(job_system_, JobPriority::eBackgroundHigh, ctx_, 1U);
     job_system_.scheduleJob(h);
 
     EXPECT_EQ(job_system_.waitForJob(h, false, util::kForever), Result::eOk);
@@ -142,10 +138,8 @@ TEST_F(JobSystemDependencyTest, BackgroundJobFinishes)
 
 TEST_F(JobSystemDependencyTest, SimpleDependency)
 {
-    JobHandle handleA =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
-    JobHandle handleB =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 2U);
+    JobHandle handleA = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
+    JobHandle handleB = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 2U);
 
     job_system_.addJobDependency(handleA, handleB);
 
@@ -164,15 +158,13 @@ TEST_F(JobSystemDependencyTest, SimpleDependency)
 TEST_F(JobSystemDependencyTest, FinishedDependency)
 {
     // Run and finish Job B first
-    JobHandle handleB =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 2U);
+    JobHandle handleB = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 2U);
     job_system_.scheduleJob(handleB);
     EXPECT_EQ(job_system_.waitForJob(handleB, false, util::kForever), Result::eOk);
     EXPECT_EQ(ctx_.counter.load(), 1U);
 
     // Now create A and make it depend on the already-finished B
-    JobHandle handleA =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
+    JobHandle handleA = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
     job_system_.addJobDependency(handleA, handleB);
     job_system_.scheduleJob(handleA);
 
@@ -184,14 +176,10 @@ TEST_F(JobSystemDependencyTest, FinishedDependency)
 
 TEST_F(JobSystemDependencyTest, DiamondDependency)
 {
-    JobHandle handleA =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
-    JobHandle handleB =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 2U);
-    JobHandle handleC =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 3U);
-    JobHandle handleD =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 4U);
+    JobHandle handleA = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
+    JobHandle handleB = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 2U);
+    JobHandle handleC = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 3U);
+    JobHandle handleD = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 4U);
 
     // B and C depend on D
     job_system_.addJobDependency(handleB, handleD);
@@ -232,10 +220,8 @@ TEST_F(JobSystemDependencyTest, StressConcurrentAddDependencyAgainstLiveDependee
         for (auto& p : pairs)
         {
             p = std::make_unique<Pair>();
-            p->dependee =
-                allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, p->ctx, 2U);
-            p->depender =
-                allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, p->ctx, 1U);
+            p->dependee = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, p->ctx, 2U);
+            p->depender = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, p->ctx, 1U);
 
             MK_ASSERT(p->dependee.id != p->depender.id);
 
@@ -246,10 +232,8 @@ TEST_F(JobSystemDependencyTest, StressConcurrentAddDependencyAgainstLiveDependee
 
         for (auto& p : pairs)
         {
-            EXPECT_EQ(job_system_.waitForJob(p->depender, false, util::kForever),
-                      Result::eOk);
-            EXPECT_EQ(p->ctx.counter.load(), 2U)
-                << "Both jobs must have run exactly once";
+            EXPECT_EQ(job_system_.waitForJob(p->depender, false, util::kForever), Result::eOk);
+            EXPECT_EQ(p->ctx.counter.load(), 2U) << "Both jobs must have run exactly once";
             EXPECT_EQ(p->ctx.order[0], 2U) << "Dependee must have run before depender";
             EXPECT_EQ(p->ctx.order[1], 1U) << "Depender must have run after dependee";
         }
@@ -263,11 +247,8 @@ TEST_F(JobSystemDependencyTest, RecursiveJobSpawnsChildren)
 
     std::atomic<u32> counter{ 0U };
 
-    JobHandle root = allocJob<RecursiveJob>(job_system_,
-                                            JobPriority::eHigh,
-                                            job_system_,
-                                            counter,
-                                            kDepth);
+    JobHandle root =
+        allocJob<RecursiveJob>(job_system_, JobPriority::eHigh, job_system_, counter, kDepth);
     job_system_.scheduleJob(root);
 
     constexpr auto kTimeout = std::chrono::seconds(5);
@@ -275,8 +256,8 @@ TEST_F(JobSystemDependencyTest, RecursiveJobSpawnsChildren)
     while (counter.load(std::memory_order_acquire) < kExpectedCount)
     {
         ASSERT_LT(std::chrono::steady_clock::now(), deadline)
-            << "Timed out waiting for recursive jobs. Completed: " << counter.load()
-            << " / " << kExpectedCount;
+            << "Timed out waiting for recursive jobs. Completed: " << counter.load() << " / "
+            << kExpectedCount;
         std::this_thread::yield();
     }
 
@@ -287,8 +268,7 @@ TEST_F(JobSystemDependencyTest, CrossPriorityGroupDependency)
 {
     JobHandle dependee =
         allocJob<OrderTrackingJob>(job_system_, JobPriority::eBackgroundHigh, ctx_, 2U);
-    JobHandle depender =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
+    JobHandle depender = allocJob<OrderTrackingJob>(job_system_, JobPriority::eHigh, ctx_, 1U);
 
     job_system_.addJobDependency(depender, dependee);
     job_system_.scheduleJob(dependee);
@@ -303,8 +283,7 @@ TEST_F(JobSystemDependencyTest, CrossPriorityGroupDependency)
 
 TEST_F(JobSystemDependencyTest, LowPriorityJobsFinish)
 {
-    JobHandle foregroundLow =
-        allocJob<OrderTrackingJob>(job_system_, JobPriority::eLow, ctx_, 1U);
+    JobHandle foregroundLow = allocJob<OrderTrackingJob>(job_system_, JobPriority::eLow, ctx_, 1U);
     JobHandle backgroundLow =
         allocJob<OrderTrackingJob>(job_system_, JobPriority::eBackgroundLow, ctx_, 2U);
 
@@ -370,8 +349,7 @@ TEST_F(JobSystemDependencyTest, GenericStress)
             {
                 JobPriority leafPrio = kPriorities[(f + i + 1U) % std::size(kPriorities)];
 
-                JobHandle leaf =
-                    allocJob<OrderTrackingJob>(job_system_, leafPrio, ctx_, f);
+                JobHandle leaf = allocJob<OrderTrackingJob>(job_system_, leafPrio, ctx_, f);
                 job_system_.addJobDependency(leaf, root);
                 job_system_.scheduleJob(leaf);
 
@@ -406,8 +384,8 @@ TEST_F(JobSystemDependencyTest, GenericStress)
         while (recursiveCounter.load(std::memory_order_acquire) < kExpectedRecursive)
         {
             ASSERT_LT(std::chrono::steady_clock::now(), deadline)
-                << "Timed out waiting for recursive jobs. Completed: "
-                << recursiveCounter.load() << " / " << kExpectedRecursive;
+                << "Timed out waiting for recursive jobs. Completed: " << recursiveCounter.load()
+                << " / " << kExpectedRecursive;
             std::this_thread::yield();
         }
 
@@ -416,3 +394,4 @@ TEST_F(JobSystemDependencyTest, GenericStress)
 }
 
 } // namespace mk::cc
+MK_FULL_MAIN()

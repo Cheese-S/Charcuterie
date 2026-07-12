@@ -1,10 +1,7 @@
-#include <gtest/gtest.h>
+#include <test/ISimpleTest.h>
 
 #include <atomic>
-#include <chrono>
 #include <thread>
-#include <vector>
-#include <algorithm>
 
 #include <core/concurrency/jobsystem/IJobQueue.h>
 
@@ -111,7 +108,7 @@ TEST(JobQueueSingle, StealEmptiesQueue)
 
 TEST(JobQueueOrder, PopIsLIFO)
 {
-    // push 0,1,2 → pop should yield 2,1,0
+    // push 0,1,2 → tryDequeue should yield 2,1,0
     JobQueue<64>    q;
     InstancePool<3> pool;
 
@@ -132,7 +129,7 @@ TEST(JobQueueOrder, PopIsLIFO)
 
 TEST(JobQueueOrder, StealIsFIFO)
 {
-    // push 0,1,2 → steal should yield 0,1,2
+    // push 0,1,2 → trySteal should yield 0,1,2
     JobQueue<64>    q;
     InstancePool<3> pool;
 
@@ -183,7 +180,7 @@ TEST(JobQueueCapacity, PushBeyondMaxReturnsFalse)
 
 TEST(JobQueueCapacity, ReusableAfterDrain)
 {
-    // Fill → drain via pop → fill again — ensures internal indices wrap correctly.
+    // Fill → drain via tryDequeue → fill again — ensures internal indices wrap correctly.
     constexpr u32      kCap = 8;
     JobQueue<kCap>     q;
     InstancePool<kCap> pool;
@@ -224,13 +221,12 @@ TEST(JobQueueCapacity, ReusableAfterDrainBySteal)
 
     for (u32 i = 0; i < kCap; ++i)
     {
-        EXPECT_TRUE(q.tryEnqueue(pool.at(i)))
-            << "refill after steal failed at slot " << i;
+        EXPECT_TRUE(q.tryEnqueue(pool.at(i))) << "refill after trySteal failed at slot " << i;
     }
 }
 
 // ===========================================================================
-// 5. Interleaved single-threaded push/pop/steal
+// 5. Interleaved single-threaded push/tryDequeue/trySteal
 // ===========================================================================
 
 TEST(JobQueueInterleaved, PushPopAlternating)
@@ -277,7 +273,7 @@ TEST(JobQueueInterleaved, PushStealAlternating)
 
 TEST(JobQueueInterleaved, MixedPopAndStealDontDuplicate)
 {
-    // Alternately pop and steal from a 4-item queue.
+    // Alternately tryDequeue and trySteal from a 4-item queue.
     // Each item must be delivered exactly once.
     JobQueue<64>    q;
     InstancePool<4> pool;
@@ -290,7 +286,7 @@ TEST(JobQueueInterleaved, MixedPopAndStealDontDuplicate)
     std::vector<details::JobInstance*> received;
     details::JobInstance*              out = nullptr;
 
-    // steal from head, pop from tail, interleaved
+    // trySteal from head, tryDequeue from tail, interleaved
     if (q.trySteal(out))
     {
         received.push_back(out);
@@ -317,12 +313,12 @@ TEST(JobQueueInterleaved, MixedPopAndStealDontDuplicate)
 }
 
 // ===========================================================================
-// 6. Concurrent steal (multiple thieves, one owner doing no work)
+// 6. Concurrent trySteal (multiple thieves, one owner doing no work)
 // ===========================================================================
 
 TEST(JobQueueConcurrent, MultipleThievesNoLoss)
 {
-    // Push N items, then let T thief threads race to steal all of them.
+    // Push N items, then let T thief threads race to trySteal all of them.
     // Every item must be stolen exactly once; no item lost, none duplicated.
     constexpr int kN = 128;
     constexpr int kT = 4;
@@ -350,7 +346,7 @@ TEST(JobQueueConcurrent, MultipleThievesNoLoss)
             [&]()
             {
                 details::JobInstance* out = nullptr;
-                while (q.steal(out))
+                while (q.trySteal(out))
                 {
                     // Identify which pool item this is
                     auto idx = static_cast<std::size_t>(out - pool.items);
@@ -379,7 +375,7 @@ TEST(JobQueueConcurrent, MultipleThievesNoLoss)
 
 TEST(JobQueueConcurrent, OwnerPopsWhileThievesSteals)
 {
-    // Owner pushes items one-by-one and pops some itself; thieves steal
+    // Owner pushes items one-by-one and tryDequeues some itself; thieves trySteal
     // concurrently.  The invariant is: every item delivered exactly once,
     // no item lost, no item duplicated.
     constexpr int kN = 1;
@@ -413,7 +409,7 @@ TEST(JobQueueConcurrent, OwnerPopsWhileThievesSteals)
             [&]()
             {
                 details::JobInstance* out = nullptr;
-                while (!owner_done.load(std::memory_order_acquire) || q.steal(out))
+                while (!owner_done.load(std::memory_order_acquire) || q.trySteal(out))
                 {
                     if (out)
                     {
@@ -422,7 +418,7 @@ TEST(JobQueueConcurrent, OwnerPopsWhileThievesSteals)
                     }
                 }
                 // Drain after owner signals done
-                while (q.steal(out))
+                while (q.trySteal(out))
                 {
                     record(out);
                     out = nullptr;
@@ -430,7 +426,7 @@ TEST(JobQueueConcurrent, OwnerPopsWhileThievesSteals)
             });
     }
 
-    // Owner thread: push all items, occasionally pop half of what it pushed
+    // Owner thread: push all items, occasionally tryDequeue half of what it pushed
     for (int i = 0; i < kN; ++i)
     {
         q.tryEnqueue(pool.at(i));
@@ -438,17 +434,17 @@ TEST(JobQueueConcurrent, OwnerPopsWhileThievesSteals)
         if (i % 2 == 0)
         {
             details::JobInstance* out = nullptr;
-            if (q.pop(out))
+            if (q.tryDequeue(out))
             {
                 record(out);
             }
         }
     }
 
-    // Drain remaining via pop
+    // Drain remaining via tryDequeue
     {
         details::JobInstance* out = nullptr;
-        while (q.pop(out))
+        while (q.tryDequeue(out))
         {
             record(out);
             out = nullptr;
@@ -469,11 +465,11 @@ TEST(JobQueueConcurrent, OwnerPopsWhileThievesSteals)
 }
 
 // ===========================================================================
-// 8. The "last element" race — pop vs steal when size == 1
+// 8. The "last element" race — tryDequeue vs trySteal when size == 1
 // ===========================================================================
 //
 //  Chase-Lev is most subtle when head == tail-1 (one element remains).
-//  Both pop() and steal() may attempt to take it simultaneously; exactly
+//  Both tryDequeue() and trySteal() may attempt to take it simultaneously; exactly
 //  one must succeed and one must return false or retry.
 //
 TEST(JobQueueConcurrent, LastElementRacePopVsSteal)
@@ -481,8 +477,8 @@ TEST(JobQueueConcurrent, LastElementRacePopVsSteal)
     constexpr int kRounds = 10'000;
 
     InstancePool<1>  pool;
-    std::atomic<int> pop_wins{ 0 };
-    std::atomic<int> steal_wins{ 0 };
+    std::atomic<int> tryDequeue_wins{ 0 };
+    std::atomic<int> trySteal_wins{ 0 };
 
     for (int r = 0; r < kRounds; ++r)
     {
@@ -504,7 +500,7 @@ TEST(JobQueueConcurrent, LastElementRacePopVsSteal)
                 details::JobInstance* out = nullptr;
                 if (q.trySteal(out))
                 {
-                    steal_wins.fetch_add(1, std::memory_order_relaxed);
+                    trySteal_wins.fetch_add(1, std::memory_order_relaxed);
                 }
             });
 
@@ -518,24 +514,24 @@ TEST(JobQueueConcurrent, LastElementRacePopVsSteal)
         details::JobInstance* out = nullptr;
         if (q.tryDequeue(out))
         {
-            pop_wins.fetch_add(1, std::memory_order_relaxed);
+            tryDequeue_wins.fetch_add(1, std::memory_order_relaxed);
         }
 
         thief.join();
 
-        // Exactly one of pop or steal must have won each round
-        ASSERT_EQ(pop_wins.load() + steal_wins.load(), r + 1)
+        // Exactly one of tryDequeue or trySteal must have won each round
+        ASSERT_EQ(tryDequeue_wins.load() + trySteal_wins.load(), r + 1)
             << "item lost or duplicated at round " << r;
     }
 }
 
 // ===========================================================================
-// 9. High-frequency push/pop/steal stress test
+// 9. High-frequency push/tryDequeue/trySteal stress test
 // ===========================================================================
 
 TEST(JobQueueStress, ProducerConsumerBalance)
 {
-    // Owner continuously pushes and pops in a loop while T thieves steal.
+    // Owner continuously pushes and tryDequeues in a loop while T thieves trySteal.
     // After a fixed number of iterations both sides stop; the queue must be
     // left in a consistent (possibly non-empty) state with no missing items.
     constexpr int kIters = 50'000;
@@ -558,14 +554,14 @@ TEST(JobQueueStress, ProducerConsumerBalance)
                 details::JobInstance* out = nullptr;
                 while (!done.load(std::memory_order_acquire))
                 {
-                    if (q.steal(out))
+                    if (q.trySteal(out))
                     {
                         total_consumed.fetch_add(1, std::memory_order_relaxed);
                         out = nullptr;
                     }
                 }
                 // Final drain
-                while (q.steal(out))
+                while (q.trySteal(out))
                 {
                     total_consumed.fetch_add(1, std::memory_order_relaxed);
                     out = nullptr;
@@ -581,11 +577,11 @@ TEST(JobQueueStress, ProducerConsumerBalance)
             total_produced.fetch_add(1, std::memory_order_relaxed);
         }
 
-        // Occasionally pop rather than leaving work for thieves
+        // Occasionally tryDequeue rather than leaving work for thieves
         if (i % 4 == 0)
         {
             details::JobInstance* out = nullptr;
-            if (q.pop(out))
+            if (q.tryDequeue(out))
             {
                 total_consumed.fetch_add(1, std::memory_order_relaxed);
             }
@@ -595,7 +591,7 @@ TEST(JobQueueStress, ProducerConsumerBalance)
     // Owner drains whatever remains
     {
         details::JobInstance* out = nullptr;
-        while (q.pop(out))
+        while (q.tryDequeue(out))
         {
             total_consumed.fetch_add(1, std::memory_order_relaxed);
             out = nullptr;
@@ -613,3 +609,4 @@ TEST(JobQueueStress, ProducerConsumerBalance)
 }
 
 } // namespace mk::cc
+MK_SIMPLE_MAIN();
