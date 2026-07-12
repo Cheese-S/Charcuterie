@@ -1,5 +1,5 @@
 #include <test/ITest.h>
-#include <core/filesystem/IFileHandle.h>
+#include <core/filesystem/IFileUtil.h>
 #include <asset/export/raw/IPpm.h>
 
 namespace mk::asset
@@ -14,16 +14,15 @@ protected:
 
     Vector<byte> readTestPpmBinary()
     {
-        fs::IFileHandlePtr file;
-        EXPECT_OK(fs::openUniqueFile(path_, fs::FileAccessMode::eRead, file));
         Vector<byte> bytes;
-        EXPECT_OK(file->read(bytes));
+        EXPECT_OK(fs::util::readBinaryFile(path_, bytes));
         return bytes;
     }
 
     void TearDown() override
     {
-        EXPECT_OK(fs::removeFile(path_));
+        fs::IVfs& vfs = AppContext<fs::IVfs>::get();
+        EXPECT_OK(vfs.deleteFile(path_));
     }
 
     fs::Path path_;
@@ -64,3 +63,4 @@ TEST_F(PpmTest, WritesCorrectContent)
 }
 
 } // namespace mk::asset
+MK_FULL_MAIN()
