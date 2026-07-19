@@ -217,7 +217,7 @@ Result JobSystem<PoolSizeConfig>::waitForJob(JobHandle      handle,
                                              bool           executeJobWhileWaiting,
                                              util::Duration duration)
 {
-    MK_ASSERTF(isValidHandle(handle), "[Job System]: only can wait for a valid job handle.");
+    // MK_ASSERTF(isValidHandle(handle), "[Job System]: only can wait for a valid job handle.");
 
     static util::Duration kPollPeriod = std::chrono::milliseconds(1);
 

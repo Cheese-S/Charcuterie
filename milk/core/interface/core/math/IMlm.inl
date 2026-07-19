@@ -43,6 +43,12 @@ T Vec2<T, IsAligned>::y() const
 
 // ----------------------------------- Vec3 -----------------------------------
 template<bool IsAligned>
+Vec3<IsAligned> Vec3<IsAligned>::cross(Vec3<IsAligned> p, Vec3<IsAligned> q)
+{
+    return glm::cross(p.data_, q.data_);
+}
+
+template<bool IsAligned>
 f32& Vec3<IsAligned>::operator[](u8 i)
 {
     MK_ASSERT(i >= 0 && i < 3);
@@ -85,40 +91,46 @@ f32 Vec3<IsAligned>::z() const
     return data_.z;
 }
 
+template<bool IsAligned>
+Vec3<IsAligned> Vec3<IsAligned>::operator-(const Vec3<IsAligned>& rhs)
+{
+    return Vec3<IsAligned>(data_ - rhs.data_);
+}
+
 // ----------------------------------- Vec4 -----------------------------------
 
 template<bool IsAligned>
-Vec4<IsAligned> Vec4<IsAligned>::normalize(const Vec4<IsAligned>& vec)
+Vec4<IsAligned> Vec4<IsAligned>::normalize(Vec4<IsAligned> vec)
 {
     return Vec4<IsAligned>(glm::normalize(vec.data_));
 }
 
 template<bool IsAligned>
-f32 Vec4<IsAligned>::dot(const Vec4<IsAligned>& a, const Vec4<IsAligned>& b)
+f32 Vec4<IsAligned>::dot(Vec4<IsAligned> a, Vec4<IsAligned> b)
 {
     return glm::dot(a.data_, b.data_);
 }
 
 template<bool IsAligned>
-f32 Vec4<IsAligned>::distanceSq(const Vec4<IsAligned>& p, const Vec4<IsAligned>& q)
+f32 Vec4<IsAligned>::distanceSq(Vec4<IsAligned> p, Vec4<IsAligned> q)
 {
     return glm::distance2(p.data_, q.data_);
 }
 
 template<bool IsAligned>
-f32 Vec4<IsAligned>::distance(const Vec4<IsAligned>& p, const Vec4<IsAligned>& q)
+f32 Vec4<IsAligned>::distance(Vec4<IsAligned> p, Vec4<IsAligned> q)
 {
     return glm::distance(p.data_, q.data_);
 }
 
 template<bool IsAligned>
-f32 Vec4<IsAligned>::magnitudeSq(const Vec4<IsAligned>& v)
+f32 Vec4<IsAligned>::magnitudeSq(Vec4<IsAligned> v)
 {
     return glm::length2(v.data_);
 }
 
 template<bool IsAligned>
-f32 Vec4<IsAligned>::magnitude(const Vec4<IsAligned>& v)
+f32 Vec4<IsAligned>::magnitude(Vec4<IsAligned> v)
 {
     return glm::length(v.data_);
 }
@@ -179,7 +191,7 @@ f32 Vec4<IsAligned>::w() const
 }
 
 template<bool IsAligned>
-Vec4<IsAligned> Vec4<IsAligned>::operator-(const Vec4<IsAligned>& rhs)
+Vec4<IsAligned> Vec4<IsAligned>::operator-(Vec4<IsAligned> rhs) const
 {
     return Vec4<IsAligned>(data_ - rhs.data_);
 }

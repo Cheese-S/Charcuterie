@@ -23,6 +23,9 @@ public:
     // eAlreadyExist, if there is already a directory
     // eNotFound, if any intermediate directories dose not exist
     virtual Result createDir(const Path& path) const = 0;
+    virtual Result deleteDir(const Path& path) const = 0;
+
+    virtual Path resolve(const Path& vfsPath) const = 0;
 
     // virtual Result deleteDir(const Path& path) const = 0;
 };
@@ -30,10 +33,11 @@ public:
 // TODO(Cheese_S): Maybe we can have a config that shows us how to map vfs paths to real fs apths
 // TODO(Cheese_S): Api is not final yet.
 // TODO(Cheese_S): Big problem: root = "C:/foo/bar", path = "/Games/aab", root / path = "Games/aab".
+// TODO(Cheese_S): separate the interface the impl
 // We need to fix this
 class Vfs: public IVfs
 {
-    using VfsPasskey = util::Passkey<Vfs>;
+    using VfsPasskey = ::mk::util::Passkey<Vfs>;
 
 public:
     static Result makeVfs(StringView projectName, UniquePtr<IVfs>& outVfs);
@@ -50,11 +54,11 @@ public:
     Result deleteFile(const Path& path) const override;
 
     Result createDir(const Path& path) const override;
-    // Result deleteDir(const Path& path) const override;
+    Result deleteDir(const Path& path) const override;
+
+    Path resolve(const Path& vfsPath) const override;
 
 private:
-    Path toAbsolute(const Path& vfsPath) const;
-
     const Path root_;
 };
 }; // namespace mk::fs

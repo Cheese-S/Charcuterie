@@ -69,8 +69,7 @@ void WordLock::lockSlow()
         self.shouldPark = true;
         self.next = nullptr;
 
-        details::WaitNode* head =
-            std::bit_cast<details::WaitNode*>(current & ~(kAddrMask));
+        details::WaitNode* head = std::bit_cast<details::WaitNode*>(current & ~(kAddrMask));
 
         // Queue is empty
         if (!head)

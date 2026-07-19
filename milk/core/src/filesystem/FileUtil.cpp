@@ -14,7 +14,7 @@ namespace mk::fs::util
 
 Result readBinaryFile(const fs::Path& path, Vector<byte>& outBytes)
 {
-    MK_ASSERTF(outBytes.size(), "Passing non-empty out bytes to readBinaryFile");
+    MK_ASSERTF(!outBytes.size(), "Passing non-empty out bytes to readBinaryFile");
 
     fs::IVfs& vfs = AppContext<fs::IVfs>::get();
 

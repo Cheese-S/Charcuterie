@@ -108,12 +108,12 @@ Vfs::Vfs(Path&& root, VfsPasskey): root_(root) {}
 
 bool Vfs::fileExist(const Path& path) const
 {
-    return GetFileAttributes(toAbsolute(path).cstr()) != INVALID_FILE_ATTRIBUTES;
+    return GetFileAttributes(resolve(path).cstr()) != INVALID_FILE_ATTRIBUTES;
 }
 
 bool Vfs::dirExist(const Path& path) const
 {
-    DWORD attr = GetFileAttributes(toAbsolute(path).cstr());
+    DWORD attr = GetFileAttributes(resolve(path).cstr());
     return attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_ARCHIVE);
 }
 
@@ -131,7 +131,7 @@ Result Vfs::openFile(const Path& path, AccessMode mode, UniquePtr<IFileHandle>& 
         }
     };
 
-    HANDLE rawHandle = CreateFile(toAbsolute(path).cstr(),
+    HANDLE rawHandle = CreateFile(resolve(path).cstr(),
                                   toAccessFlag(mode),
                                   FILE_SHARE_READ,
                                   nullptr,
@@ -157,7 +157,7 @@ Result Vfs::openFile(const Path& path, AccessMode mode, UniquePtr<IFileHandle>& 
 
 Result Vfs::deleteFile(const Path& path) const
 {
-    if (DeleteFile(toAbsolute(path).cstr()))
+    if (DeleteFile(resolve(path).cstr()))
     {
         return Result::eOk;
     }
@@ -167,7 +167,7 @@ Result Vfs::deleteFile(const Path& path) const
 
 Result Vfs::createDir(const Path& path) const
 {
-    if (CreateDirectory(toAbsolute(path).cstr(), nullptr))
+    if (CreateDirectory(resolve(path).cstr(), nullptr))
     {
         return Result::eOk;
     }
@@ -175,7 +175,17 @@ Result Vfs::createDir(const Path& path) const
     return winErrorToResult(GetLastError());
 }
 
-Path Vfs::toAbsolute(const Path& vfsPath) const
+Result Vfs::deleteDir(const Path& path) const
+{
+    if (RemoveDirectory(resolve(path).cstr()))
+    {
+        return Result::eOk;
+    }
+
+    return winErrorToResult(GetLastError());
+}
+
+Path Vfs::resolve(const Path& vfsPath) const
 {
     MK_ASSERTF(!vfsPath.isAbsolute(), "Incurring extra copy.");
     Path root(root_);

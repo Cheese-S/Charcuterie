@@ -46,6 +46,9 @@ public:
     iterator begin() noexcept;
     iterator end() noexcept;
 
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+
     const_iterator cbegin() const noexcept;
     const_iterator cend() const noexcept;
 
@@ -116,7 +119,7 @@ public:
     T&       operator[](int i);
 
     const T* cdata() const;
-    const T* data();
+    T*       data();
     const T* cbegin() const;
     const T* cend() const;
     T*       begin();
@@ -132,6 +135,9 @@ private:
 
 template<typename T>
 VectorView<const byte> asBytes(VectorView<T> view);
+
+template<typename T>
+VectorView<byte> asWritableBytes(VectorView<T> view);
 
 } // namespace mk
 #define MK_VECTOR_IMPL

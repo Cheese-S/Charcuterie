@@ -124,6 +124,18 @@ typename IVector<T, Storage>::iterator IVector<T, Storage>::end() noexcept
 }
 
 template<typename T, typename Storage>
+typename IVector<T, Storage>::const_iterator IVector<T, Storage>::begin() const noexcept
+{
+    return begin_;
+}
+
+template<typename T, typename Storage>
+typename IVector<T, Storage>::const_iterator IVector<T, Storage>::end() const noexcept
+{
+    return end_;
+}
+
+template<typename T, typename Storage>
 typename IVector<T, Storage>::const_iterator IVector<T, Storage>::cbegin() const noexcept
 {
     return begin_;
@@ -343,7 +355,7 @@ const T* VectorView<T>::cdata() const
 }
 
 template<typename T>
-const T* VectorView<T>::data()
+T* VectorView<T>::data()
 {
     return begin_;
 }
@@ -390,6 +402,12 @@ VectorView<const byte> asBytes(VectorView<T> view)
 {
     return VectorView<const byte>(reinterpret_cast<const byte*>(view.begin()),
                                   sizeof(T) * view.size());
+}
+
+template<typename T>
+VectorView<byte> asWritableBytes(VectorView<T> view)
+{
+    return VectorView<byte>(reinterpret_cast<byte*>(view.begin()), sizeof(T) * view.size());
 }
 
 } // namespace mk

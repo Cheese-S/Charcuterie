@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include <core/log/ILog.h>
-#include <core/log/ILogCategory.h>
+#include <asset/LogCategory.h>
 #include <core/IAppContext.h>
 #include <asset/export/raw/IPpm.h>
 #include <core/filesystem/IFileUtil.h>
@@ -27,7 +27,6 @@ Result savePpm(const fs::Path& path, VectorView<float> data, u16 width, u16 heig
     for (float f : data)
     {
         u8 value = std::round(std::clamp(f, 0.F, 1.F) * 255.0F);
-        MK_ASSERTF(value == 0 || value == 255, "{}", f);
         writer << value;
     }
 

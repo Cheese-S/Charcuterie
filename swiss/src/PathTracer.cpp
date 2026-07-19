@@ -3,6 +3,7 @@
 #include <core/filesystem/IVfs.h>
 #include <core/log/ISink.h>
 #include <core/log/IFormatter.h>
+#include <asset/import/builder/ITemplateAssetBuilder.h>
 #include <asset/export/raw/IPpm.h>
 #include <swiss/PathTracer.h>
 
@@ -108,7 +109,16 @@ PathTracer::~PathTracer()
 
 Result PathTracer::run()
 {
-    mlm::Sphere  sphere = { .center = mlm::Point(0, 0, 6), .r = 2.0f };
+    // asset::ir::Ir ir;
+    //
+    // MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
+    //     asset::TemplateAssetBuilder::build(fs::Path("asset/box.glb"), ir),
+    //     "Failed to build asset.");
+    //
+    // mlm::Sphere  sphere = { .center = mlm::Point(0, 0, 6), .r = 2.0f };
+    mlm::Point   v2 = mlm::Point(-5, -2, 8);
+    mlm::Point   v1 = mlm::Point(5, -2, 8);
+    mlm::Point   v0 = mlm::Point(0, 5, 8);
     mlm::u16vec2 resolution = camera_->getResolution();
 
     Vector<f32> pixels;
@@ -117,8 +127,8 @@ Result PathTracer::run()
         for (u16 x = 0; x < resolution.x(); x++)
         {
             mlm::Ray ray = camera_->sampleRay(x, y);
-            f32      t = 0;
-            if (mlm::raySphereIntersection(ray, sphere, t))
+            // f32      t = 0;
+            if (mlm::rayTriIntersection(ray, v0, v1, v2))
             {
                 pixels.push(1.0f);
                 pixels.push(1.0f);
@@ -133,10 +143,11 @@ Result PathTracer::run()
         }
     }
 
-    fs::Path path("result.ppm");
-    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
-        asset::exp::savePpm(path, pixels, resolution.x(), resolution.y()),
-        "Failed to write to ppm.");
+    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(asset::exp::savePpm(fs::Path("swiss_out/result.ppm"),
+                                                          pixels,
+                                                          resolution.x(),
+                                                          resolution.y()),
+                                      "Failed to write to ppm.");
 
     MK_LOG_INFO("Finished!");
 

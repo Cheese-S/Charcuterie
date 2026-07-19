@@ -71,11 +71,12 @@ mlm::Ray PerspectiveCamera::sampleRay(u16 pixelX, u16 pixelY)
     f32 rasterX = (pixelX + 0.5F);
     f32 rasterY = (pixelY + 0.5F);
 
-    mlm::Point pt = rasterToCamera_ * mlm::Point(rasterX, rasterY, 0.0f);
-    mlm::Point o = mlm::Point(0, 0, 0);
+    mlm::Point  pt = rasterToCamera_ * mlm::Point(rasterX, rasterY, 0.0f);
+    mlm::Point  o = mlm::Point(0, 0, 0);
+    mlm::Vector d = mlm::Vector(pt);
     return mlm::Ray{
         .o = o,
-        .d = mlm::Vector::normalize(mlm::Vector(pt)),
+        .d = mlm::normalize(d),
     };
 }
 

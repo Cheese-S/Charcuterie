@@ -1,10 +1,7 @@
 #pragma once
+#include <asset/import/Ir.h>
 
 namespace mk::asset
 {
-
-struct TemplateDefinition
-{
-};
 
 } // namespace mk::asset

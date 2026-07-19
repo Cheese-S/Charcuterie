@@ -35,7 +35,7 @@ class UniquePtr: private Deleter
 public:
     MK_NON_COPYABLE(UniquePtr);
 
-    UniquePtr(): DefaultDeleter<T>(), ptr_(nullptr) {};
+    UniquePtr(): Deleter(), ptr_(nullptr) {};
 
     UniquePtr(UniquePtr&& other) noexcept: ptr_(other.ptr_) // NOLINT
     {

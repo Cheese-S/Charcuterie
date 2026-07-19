@@ -6,9 +6,11 @@ project(
 )
 
 add_library(milk_asset
-    # BEGIN_FILE_GEN src/import/raw
+    # BEGIN_FILE_GEN src/import/builder
 
-	src/import/raw/Gltf.cpp
+	src/import/builder/GltfIrBuilder.cpp
+	src/import/builder/MeshAssetBuilder.cpp
+	src/import/builder/TemplateAssetBuilder.cpp
 
     # END_GEN
 
@@ -41,6 +43,11 @@ target_link_libraries(milk_asset PRIVATE
 
 add_test(PpmTest 
          SOURCES test/export/raw/PpmTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_asset milk_test)
+
+add_test(GltfIrBuilderTest 
+         SOURCES test/import/builder/GltfIrBuilderTest.cpp 
          INCLUDES include interface milk
          LIBS milk_asset milk_test)
 # END_GEN

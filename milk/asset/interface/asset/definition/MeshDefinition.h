@@ -8,7 +8,7 @@ namespace mk::asset
 // +x right, +y up, +z forward
 struct MeshDefinition
 {
-    enum class VertexStreamType
+    enum class VertexAttribute
     {
         ePosition,
     };

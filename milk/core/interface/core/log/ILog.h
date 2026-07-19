@@ -178,4 +178,15 @@ void LogSystem::log(LogCategory                     category,
         }                                                      \
     } while (0)
 
+#define MK_LOG_ERROR_AND_RETURN_RET_IF_TRUE(x, ret, fmt, ...) \
+    do                                                        \
+    {                                                         \
+        bool MK_CONCAT(b, __LINE__) = (x);                    \
+        if ((MK_CONCAT(b, __LINE__)))                         \
+        {                                                     \
+            MK_LOG_ERROR(fmt __VA_OPT__(, ) __VA_ARGS__);     \
+            return ret;                                       \
+        }                                                     \
+    } while (0)
+
 } // namespace mk::log

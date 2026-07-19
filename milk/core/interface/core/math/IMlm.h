@@ -50,6 +50,7 @@ public:
     MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Vec2);
     Vec2(T xy): data_(xy) {}
     Vec2(T x, T y): data_(x, y) {};
+    Vec2(DataType raw): data_(raw) {};
 
     T& operator[](u8 i);
 
@@ -74,9 +75,19 @@ class Vec3
     using DataType = std::conditional_t<IsAligned, glm::aligned_highp_vec3, glm::packed_highp_vec3>;
 
 public:
+    static Vec3 cross(Vec3 p, Vec3 q);
+    static f32  dot(Vec3 p, Vec3 q);
+
     MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Vec3);
+    Vec3(): data_(0) {}
     Vec3(f32 xyz): data_(xyz) {}
     Vec3(f32 x, f32 y, f32 z): data_(x, y, z) {}
+    Vec3(DataType raw): data_(raw) {}
+
+    template<bool OtherIsAligned>
+    explicit Vec3(Vec3<OtherIsAligned> rhs): data_(rhs.x(), rhs.y(), rhs.z())
+    {
+    }
 
     f32& x();
     f32& y();
@@ -87,6 +98,7 @@ public:
     f32 z() const;
 
     f32& operator[](u8 i);
+    Vec3 operator-(const Vec3& rhs);
 
 private:
     DataType data_;
@@ -109,12 +121,12 @@ public:
     explicit Vec4(DataType data): data_(data) {}
     Vec4(f32 x, f32 y, f32 z, f32 w): data_(x, y, z, w) {}
 
-    static Vec4 normalize(const Vec4& vec);
-    static f32  dot(const Vec4& a, const Vec4& b);
-    static f32  distanceSq(const Vec4& p, const Vec4& q);
-    static f32  distance(const Vec4& p, const Vec4& q);
-    static f32  magnitudeSq(const Vec4& v);
-    static f32  magnitude(const Vec4& v);
+    static Vec4 normalize(Vec4 vec);
+    static f32  dot(Vec4 a, Vec4 b);
+    static f32  distanceSq(Vec4 p, Vec4 q);
+    static f32  distance(Vec4 p, Vec4 q);
+    static f32  magnitudeSq(Vec4 v);
+    static f32  magnitude(Vec4 v);
 
     f32& x();
     f32& y();
@@ -127,7 +139,7 @@ public:
     f32 w() const;
 
     f32& operator[](u8 i);
-    Vec4 operator-(const Vec4& rhs);
+    Vec4 operator-(Vec4 rhs) const;
 
     friend Vec4 operator*(f32 f, const Vec4& v)
     {
@@ -195,6 +207,29 @@ private:
     DataType data_;
 };
 
+class Quat
+{
+    friend Transform;
+
+public:
+    MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Quat);
+    Quat(): data_(1, 0, 0, 0) {};
+    Quat(f32 x, f32 y, f32 z, f32 w): data_(w, x, y, z) {}
+
+    f32& x();
+    f32& y();
+    f32& z();
+    f32& w();
+
+    f32 x() const;
+    f32 y() const;
+    f32 z() const;
+    f32 w() const;
+
+private:
+    glm::aligned_highp_quat data_;
+};
+
 } // namespace mk::mlm::details
 
 // We use column major
@@ -217,11 +252,24 @@ using vec3 = details::Vec3<true>;
 using vec4 = details::Vec4<true>;
 using mat4 = details::Mat4<true>;
 
+using quat = details::Quat;
+
 // Use pakced vectors when serializing
 using PackedVec2 = details::Vec2<f32, false>;
 using PackedVec3 = details::Vec3<false>;
 using PackedVec4 = details::Vec4<false>;
 using PackedMat4 = details::Mat4<false>;
+
+static_assert(sizeof(PackedVec2) == 8, "sizeof(PackedVec2) should be equal to 8");
+static_assert(sizeof(PackedVec3) == 12, "sizeof(PackedVec3) should be equal to 12");
+static_assert(sizeof(PackedVec4) == 16, "sizeof(PackedVec4) should be equal to 16");
+static_assert(sizeof(PackedMat4) == 64, "sizeof(PackedMat4) should be equal to 64");
+
+static_assert(sizeof(vec2) == 8, "sizeof(vec2) should be equal to 8");
+static_assert(sizeof(vec3) == 16, "sizeof(vec2) should be equal to 16");
+static_assert(sizeof(vec4) == 16, "sizeof(vec2) should be equal to 16");
+static_assert(sizeof(quat) == 16, "sizeof(quat) should be equal to 16");
+static_assert(sizeof(mat4) == 64, "sizeof(mat4) should be equal to 16");
 
 // NOLINTNEXTLINE(modernize-use-std-numbers)
 constexpr f32 kPi = 3.14159265358979323846;
@@ -248,9 +296,13 @@ public:
 
     static Transform inverse(const Transform& t);
 
+    static Transform rotate(quat q);
+
     Transform operator*(const Transform& other);
     Point     operator*(const Point& pt);
     Vector    operator*(const Vector& vec);
+
+    mlm::mat4& getRaw();
 
 private:
     mat4 data_;
@@ -270,6 +322,11 @@ public:
 
     explicit Point(const Vector& v);
 
+    template<bool IsAligned>
+    explicit Point(details::Vec3<IsAligned> vec3): data_(vec3.x(), vec3.y(), vec3.z(), 1)
+    {
+    }
+
     f32& x();
     f32& y();
     f32& z();
@@ -278,7 +335,7 @@ public:
     f32 y() const;
     f32 z() const;
 
-    Vector operator-(const Point& rhs);
+    Vector operator-(const Point& rhs) const;
 
     friend f32 distanceSq(const Point& p, const Point& q);
     friend f32 distance(const Point& p, const Point& q);
@@ -287,21 +344,33 @@ private:
     vec4 data_;
 };
 
+Vector cross(const Vector& p, const Vector& q);
+Vector normalize(const Vector& vec);
+f32    dot(const Vector& p, const Vector& q);
+f32    magnitudeSq(const Vector& v);
+f32    magnitude(const Vector& v);
+
 class Vector
 {
     friend Transform;
 
 public:
-    static Vector normalize(const Vector& vec);
-    static f32    dot(const Vector& p, const Vector& q);
-    static f32    magnitudeSq(const Vector& v);
-    static f32    magnitude(const Vector& v);
+    friend Vector cross(const Vector& p, const Vector& q);
+    friend Vector normalize(const Vector& vec);
+    friend f32    dot(const Vector& p, const Vector& q);
+    friend f32    magnitudeSq(const Vector& v);
+    friend f32    magnitude(const Vector& v);
 
     Vector(f32 x, f32 y, f32 z): data_(x, y, z, 0) {}
     // TODO(Cheese_S): Maybe just force set w to 0
     Vector(vec4 vec): data_(vec)
     {
         MK_ASSERT(vec.w() == 0);
+    }
+
+    template<bool IsAligned>
+    explicit Vector(details::Vec3<IsAligned> vec3): data_(vec3.x(), vec3.y(), vec3.z(), 0)
+    {
     }
 
     explicit Vector(const Point& pt): Vector(pt.x(), pt.y(), pt.z()) {}
@@ -344,6 +413,7 @@ f32   toFovY(f32 fovX, f32 aspect);
 // ------------------------------- INTERSECTION -------------------------------
 
 bool raySphereIntersection(const Ray& r, const Sphere& s, f32& outT);
+bool rayTriIntersection(const Ray& r, Point v0, Point v1, Point v2);
 
 } // namespace mk::mlm
 
