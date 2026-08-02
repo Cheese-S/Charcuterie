@@ -16,6 +16,7 @@ add_executable(swiss
 
     # BEGIN_FILE_GEN src/render/
 
+	src/render/Bvh.cpp
 	src/render/Camera.cpp
 
     # END_GEN

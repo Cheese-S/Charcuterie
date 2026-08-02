@@ -1,5 +1,5 @@
 #pragma once
-#include <core/math/IMlm.h>
+#include <core/mlm/IUtil.h>
 #include <core/container/IVector.h>
 
 namespace mk::asset::ir
@@ -16,6 +16,7 @@ struct MeshPart
 {
     Vector<mlm::PackedVec3> positions;
     Vector<u16>             indices;
+    mlm::Bound              localBound;
 };
 
 struct Mesh

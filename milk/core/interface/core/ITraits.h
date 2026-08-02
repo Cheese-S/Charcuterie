@@ -146,6 +146,22 @@ struct IsZeroInitializable<std::unique_ptr<T>>
 };
 
 template<typename T>
+struct IsVec: std::false_type
+{
+};
+
+template<typename T>
+struct IsVec3: std::false_type
+{
+};
+
+template<typename T>
+concept VecType = IsVec<std::remove_cvref_t<T>>::value;
+
+template<typename T>
+concept Vec3Type = IsVec3<std::remove_cvref_t<T>>::value;
+
+template<typename T>
 struct TypeCompatibleBytes
 {
     alignas(T) byte bytes[sizeof(T)];

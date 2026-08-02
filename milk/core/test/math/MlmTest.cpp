@@ -1,5 +1,5 @@
 #include <test/ISimpleTest.h>
-#include <core/math/IMlm.h>
+#include <core/mlm/IMlm.h>
 
 namespace mk::mlm
 {
@@ -176,104 +176,6 @@ TEST(Mat4Test, MatrixMatrixMultiplyIdentityPreservesAllElements)
         }
     }
 }
-
-//
-// ============================================================
-// Transform Tests
-// ============================================================
-//
-
-// TEST(TransformTest, ScaleUniform)
-// {
-//     Transform t = Transform::scale(2.0f);
-//
-//     Point p(1, 2, 3);
-//     Point r = t * p;
-//
-//     EXPECT_F(r.x(), 2);
-//     EXPECT_F(r.y(), 4);
-//     EXPECT_F(r.z(), 6);
-// }
-//
-// TEST(TransformTest, ScaleNonUniform)
-// {
-//     Transform t = Transform::scale(2.0f, 3.0f, 4.0f);
-//
-//     Point p(1, 2, 3);
-//     Point r = t * p;
-//
-//     EXPECT_F(r.x(), 2);
-//     EXPECT_F(r.y(), 6);
-//     EXPECT_F(r.z(), 12);
-// }
-//
-// TEST(TransformTest, TranslatePoint)
-// {
-//     Transform t = Transform::translate(10, 20, 30);
-//
-//     Point p(1, 2, 3);
-//     Point r = t * p;
-//
-//     EXPECT_F(r.x(), 11);
-//     EXPECT_F(r.y(), 22);
-//     EXPECT_F(r.z(), 33);
-// }
-//
-// TEST(TransformTest, TranslateDoesNotAffectDirectionVector)
-// {
-//     Transform t = Transform::translate(10, 20, 30);
-//
-//     Vec v(1, 2, 3);
-//     Vec r = t * v;
-//
-//     EXPECT_F(r.x(), 1);
-//     EXPECT_F(r.y(), 2);
-//     EXPECT_F(r.z(), 3);
-// }
-//
-// TEST(TransformTest, Composition)
-// {
-//     Transform s = Transform::scale(2, 2, 2);
-//     Transform t = Transform::translate(10, 0, 0);
-//
-//     Transform c = t * s;
-//
-//     Point p(1, 1, 1);
-//     Point r = c * p;
-//
-//     EXPECT_F(r.x(), 12);
-//     EXPECT_F(r.y(), 2);
-//     EXPECT_F(r.z(), 2);
-// }
-//
-// TEST(TransformTest, InverseRoundTrip)
-// {
-//     Transform t = Transform::translate(5, 6, 7) * Transform::scale(2, 3, 4);
-//
-//     Transform inv = Transform::inverse(t);
-//
-//     Point p(1, 2, 3);
-//
-//     Point r = inv * (t * p);
-//
-//     EXPECT_F(r.x(), 1);
-//     EXPECT_F(r.y(), 2);
-//     EXPECT_F(r.z(), 3);
-// }
-//
-// TEST(TransformTest, InverseIdentityProperty)
-// {
-//     Transform t = Transform::translate(3, 4, 5) * Transform::scale(2, 2, 2);
-//
-//     Transform id = Transform::inverse(t) * t;
-//
-//     Point p(9, 8, 7);
-//     Point r = id * p;
-//
-//     EXPECT_F(r.x(), 9);
-//     EXPECT_F(r.y(), 8);
-//     EXPECT_F(r.z(), 7);
-// }
 
 } // namespace mk::mlm
 MK_SIMPLE_MAIN()

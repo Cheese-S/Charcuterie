@@ -139,6 +139,8 @@ Result Vfs::openFile(const Path& path, AccessMode mode, UniquePtr<IFileHandle>& 
                                   FILE_ATTRIBUTE_NORMAL,
                                   nullptr);
 
+    MK_RAW_LOG_DEBUG("paht: {}", resolve(path).cstr());
+
     if (rawHandle == INVALID_HANDLE_VALUE)
     {
         return winErrorToResult(GetLastError());

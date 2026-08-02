@@ -64,9 +64,10 @@ add_library(milk_core
 
     # END_GEN
 
-    # BEGIN_FILE_GEN src/math
+    # BEGIN_FILE_GEN src/mlm
 
-	src/math/Mlm.cpp
+	src/mlm/Mlm.cpp
+	src/mlm/Util.cpp
 
     # END_GEN
 )

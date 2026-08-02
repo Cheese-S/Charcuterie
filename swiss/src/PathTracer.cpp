@@ -3,6 +3,8 @@
 #include <core/filesystem/IVfs.h>
 #include <core/log/ISink.h>
 #include <core/log/IFormatter.h>
+#include <core/mlm/IUtil.h>
+
 #include <asset/import/builder/ITemplateAssetBuilder.h>
 #include <asset/export/raw/IPpm.h>
 #include <swiss/PathTracer.h>
@@ -71,8 +73,8 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
 
     UniquePtr<render::PerspectiveCamera> camera;
     {
-        mlm::Transform worldToCamera;
-        mlm::u16vec2   resolution(800, 600);
+        mlm::mat4    worldToCamera;
+        mlm::u16vec2 resolution(800, 600);
         camera = makeUnique<render::PerspectiveCamera>(
             worldToCamera,
             resolution,
@@ -116,10 +118,10 @@ Result PathTracer::run()
     //     "Failed to build asset.");
     //
     // mlm::Sphere  sphere = { .center = mlm::Point(0, 0, 6), .r = 2.0f };
-    mlm::Point   v2 = mlm::Point(-5, -2, 8);
-    mlm::Point   v1 = mlm::Point(5, -2, 8);
-    mlm::Point   v0 = mlm::Point(0, 5, 8);
-    mlm::u16vec2 resolution = camera_->getResolution();
+    mlm::PackedVec3 v2 = mlm::PackedVec3(-5, -2, 8);
+    mlm::PackedVec3 v1 = mlm::PackedVec3(5, -2, 8);
+    mlm::PackedVec3 v0 = mlm::PackedVec3(0, 5, 8);
+    mlm::u16vec2    resolution = camera_->getResolution();
 
     Vector<f32> pixels;
     for (u16 y = 0; y < resolution.y(); y++)

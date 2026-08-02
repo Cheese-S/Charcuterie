@@ -71,52 +71,51 @@ Result toResult(cgltf_result result)
 
 mlm::mat4 getNodeMatrix(const cgltf_node& node)
 {
-    mlm::Transform flipz = mlm::Transform::scale(1, 1, -1);
-    mlm::Transform transform;
+    mlm::mat4 flipz = mlm::mat4::scale(1, 1, -1);
+    mlm::mat4 transform;
 
     if (node.has_matrix)
     {
-        transform = mlm::Transform(mlm::mat4(node.matrix[0],
-                                             node.matrix[1],
-                                             node.matrix[2],
-                                             node.matrix[3],
-                                             node.matrix[4],
-                                             node.matrix[5],
-                                             node.matrix[6],
-                                             node.matrix[7],
-                                             node.matrix[8],
-                                             node.matrix[9],
-                                             node.matrix[10],
-                                             node.matrix[11],
-                                             node.matrix[12],
-                                             node.matrix[13],
-                                             node.matrix[14],
-                                             node.matrix[15]));
+        transform = mlm::mat4(node.matrix[0],
+                              node.matrix[1],
+                              node.matrix[2],
+                              node.matrix[3],
+                              node.matrix[4],
+                              node.matrix[5],
+                              node.matrix[6],
+                              node.matrix[7],
+                              node.matrix[8],
+                              node.matrix[9],
+                              node.matrix[10],
+                              node.matrix[11],
+                              node.matrix[12],
+                              node.matrix[13],
+                              node.matrix[14],
+                              node.matrix[15]);
     }
 
-    mlm::Transform scale = mlm::Transform::scale(1);
-    mlm::Transform translate = mlm::Transform::translate(0, 0, 0);
-    mlm::Transform rotate = mlm::Transform::rotate(mlm::quat(0, 0, 0, 1));
+    mlm::mat4 scale = mlm::mat4::scale(1);
+    mlm::mat4 translate = mlm::mat4::translate(0, 0, 0);
+    mlm::mat4 rotate = mlm::mat4::rotate(mlm::quat(0, 0, 0, 1));
 
     if (node.has_translation)
     {
-        translate = mlm::Transform::translate(node.translation[0],
-                                              node.translation[1],
-                                              node.translation[2]);
+        translate =
+            mlm::mat4::translate(node.translation[0], node.translation[1], node.translation[2]);
     }
 
     if (node.has_scale)
     {
-        scale = mlm::Transform::scale(node.scale[0], node.scale[1], node.scale[2]);
+        scale = mlm::mat4::scale(node.scale[0], node.scale[1], node.scale[2]);
     }
 
     if (node.has_rotation)
     {
-        rotate = mlm::Transform::rotate(
+        rotate = mlm::mat4::rotate(
             mlm::quat(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]));
     }
 
-    return (flipz * translate * rotate * scale * flipz).getRaw();
+    return flipz * translate * rotate * scale * flipz;
 }
 
 // returns the collected node's index in irNodes
@@ -220,6 +219,11 @@ Result collectMeshes(const cgltf_data& gltf, ir::Ir& outIr)
                         *attribute.data,
                         { part.positions.data(), part.positions.size() });
                 }
+            }
+
+            for (const auto position : part.positions)
+            {
+                part.localBound.include(position);
             }
 
             irMesh.parts.push(std::move(part));

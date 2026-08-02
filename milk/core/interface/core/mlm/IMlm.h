@@ -11,11 +11,6 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtc/type_aligned.hpp>
 
-namespace mk::mlm
-{
-class Transform;
-}
-
 namespace mk::mlm::details
 {
 
@@ -30,23 +25,19 @@ class Vec4;
 template<bool IsAligned>
 class Mat4;
 
+class Quat;
+
 // Wrapper around glm type to ensure consistent behaviors
 
 template<typename T, bool IsAligned>
     requires std::is_arithmetic_v<T>
 class Vec2
 {
-    friend class Vec3<IsAligned>;
-
-    friend class Vec4<IsAligned>;
-
-    friend class Mat4<IsAligned>;
-
+public:
     using DataType = std::conditional_t<IsAligned,
                                         glm::vec<2, T, glm::aligned_highp>,
                                         glm::vec<2, T, glm::packed_highp>>;
 
-public:
     MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Vec2);
     Vec2(T xy): data_(xy) {}
     Vec2(T x, T y): data_(x, y) {};
@@ -60,6 +51,11 @@ public:
     T x() const;
     T y() const;
 
+    Vec2 operator-(Vec2 rhs) const;
+    Vec2 operator+(Vec2 rhs) const;
+
+    DataType getRaw() const;
+
 private:
     DataType data_;
 };
@@ -67,17 +63,11 @@ private:
 template<bool IsAligned>
 class Vec3
 {
-    friend class Vec2<f32, IsAligned>;
-    friend class Vec4<IsAligned>;
-    friend class Mat4<IsAligned>;
-    friend class ::mk::mlm::Transform;
-
-    using DataType = std::conditional_t<IsAligned, glm::aligned_highp_vec3, glm::packed_highp_vec3>;
+    template<bool OtherIsAligned>
+    friend class Vec3;
 
 public:
-    static Vec3 cross(Vec3 p, Vec3 q);
-    static f32  dot(Vec3 p, Vec3 q);
-
+    using DataType = std::conditional_t<IsAligned, glm::aligned_highp_vec3, glm::packed_highp_vec3>;
     MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Vec3);
     Vec3(): data_(0) {}
     Vec3(f32 xyz): data_(xyz) {}
@@ -85,7 +75,7 @@ public:
     Vec3(DataType raw): data_(raw) {}
 
     template<bool OtherIsAligned>
-    explicit Vec3(Vec3<OtherIsAligned> rhs): data_(rhs.x(), rhs.y(), rhs.z())
+    Vec3(Vec3<OtherIsAligned> rhs): data_(rhs.data_)
     {
     }
 
@@ -98,35 +88,35 @@ public:
     f32 z() const;
 
     f32& operator[](u8 i);
-    Vec3 operator-(const Vec3& rhs);
+    Vec3 operator-(Vec3 rhs) const;
+    Vec3 operator+(Vec3 rhs) const;
+    Vec3 operator/(f32 f) const;
+
+    DataType getRaw() const;
 
 private:
     DataType data_;
 };
 
+// TODO(Cheese_S): We should convert all static to free functions
 template<bool IsAligned>
 class Vec4
 {
-    friend class Vec2<f32, IsAligned>;
-    friend class Vec3<IsAligned>;
-    friend class Vec4<IsAligned>;
-    friend class Mat4<IsAligned>;
-    friend class ::mk::mlm::Transform;
-
-    using DataType = std::conditional_t<IsAligned, glm::aligned_highp_vec4, glm::packed_highp_vec4>;
+    template<bool OtherIsAligned>
+    friend class Vec4;
 
 public:
+    using DataType = std::conditional_t<IsAligned, glm::aligned_highp_vec4, glm::packed_highp_vec4>;
+
     MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Vec4);
     explicit Vec4(f32 xyzw): data_(xyzw) {}
     explicit Vec4(DataType data): data_(data) {}
     Vec4(f32 x, f32 y, f32 z, f32 w): data_(x, y, z, w) {}
 
-    static Vec4 normalize(Vec4 vec);
-    static f32  dot(Vec4 a, Vec4 b);
-    static f32  distanceSq(Vec4 p, Vec4 q);
-    static f32  distance(Vec4 p, Vec4 q);
-    static f32  magnitudeSq(Vec4 v);
-    static f32  magnitude(Vec4 v);
+    template<bool OtherIsAligned>
+    Vec4(Vec4<OtherIsAligned> rhs): data_(rhs.data_)
+    {
+    }
 
     f32& x();
     f32& y();
@@ -140,11 +130,39 @@ public:
 
     f32& operator[](u8 i);
     Vec4 operator-(Vec4 rhs) const;
+    Vec4 operator+(Vec4 rhs) const;
 
     friend Vec4 operator*(f32 f, const Vec4& v)
     {
         return Vec4(f * v.data_);
     }
+
+    DataType getRaw() const;
+
+private:
+    DataType data_;
+};
+
+class Quat
+{
+public:
+    using DataType = glm::aligned_highp_quat;
+
+    MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Quat);
+    Quat(): data_(1, 0, 0, 0) {};
+    Quat(f32 x, f32 y, f32 z, f32 w): data_(w, x, y, z) {}
+
+    f32& x();
+    f32& y();
+    f32& z();
+    f32& w();
+
+    f32 x() const;
+    f32 y() const;
+    f32 z() const;
+    f32 w() const;
+
+    DataType getRaw() const;
 
 private:
     DataType data_;
@@ -158,17 +176,11 @@ private:
 template<bool IsAligned>
 class Mat4
 {
-    friend class Vec2<f32, IsAligned>;
-    friend class Vec3<IsAligned>;
-    friend class Vec4<IsAligned>;
-    friend class ::mk::mlm::Transform;
-
-    using DataType = std::conditional_t<IsAligned, glm::aligned_highp_mat4, glm::packed_highp_mat4>;
-    using Vec4DataType = Vec4<IsAligned>::DataType;
-
 public:
+    using Vec4DataType = Vec4<IsAligned>::DataType;
+    using DataType = std::conditional_t<IsAligned, glm::aligned_highp_mat4, glm::packed_highp_mat4>;
     MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Mat4);
-    Mat4(): data_(1.0F) {}
+    Mat4(): data_(1.0f) {}
 
     Mat4(f32 m00,
          f32 m10,
@@ -195,42 +207,49 @@ public:
 
     explicit Mat4(DataType mat): data_(mat) {}
 
-    static Mat4 inverse(Mat4 m);
+    static Mat4 scale(f32 f);
+    static Mat4 scale(f32 x, f32 y, f32 z);
+    static Mat4 translate(f32 x, f32 y, f32 z);
+    static Mat4 inverse(const Mat4& m);
+    static Mat4 rotate(Quat q);
 
     Mat4 operator*(const Mat4& other);
 
-    Vec4<IsAligned> operator*(const Vec4<IsAligned>& vec);
+    Vec4<IsAligned> operator*(Vec4<IsAligned> vec);
 
     Vec4DataType& operator[](u8 i);
+
+    const DataType& getRaw() const;
 
 private:
     DataType data_;
 };
 
-class Quat
+} // namespace mk::mlm::details
+
+namespace mk
 {
-    friend Transform;
-
-public:
-    MK_DEFAULT_MOVABLE_DEFAULT_COPYABLE(Quat);
-    Quat(): data_(1, 0, 0, 0) {};
-    Quat(f32 x, f32 y, f32 z, f32 w): data_(w, x, y, z) {}
-
-    f32& x();
-    f32& y();
-    f32& z();
-    f32& w();
-
-    f32 x() const;
-    f32 y() const;
-    f32 z() const;
-    f32 w() const;
-
-private:
-    glm::aligned_highp_quat data_;
+template<bool IsAligned>
+struct IsVec<mlm::details::Vec2<f32, IsAligned>>: std::true_type
+{
 };
 
-} // namespace mk::mlm::details
+template<bool IsAligned>
+struct IsVec<mlm::details::Vec3<IsAligned>>: std::true_type
+{
+};
+
+template<bool IsAligned>
+struct IsVec<mlm::details::Vec4<IsAligned>>: std::true_type
+{
+};
+
+template<bool IsAligned>
+struct IsVec3<mlm::details::Vec3<IsAligned>>: std::true_type
+{
+};
+
+} // namespace mk
 
 // We use column major
 namespace mk::mlm
@@ -280,143 +299,34 @@ constexpr f32 kInv4Pi = 0.07957747154594766788;  // 1 / (4 * pi)
 constexpr f32 kPiOver2 = 1.57079632679489661923; // pi / 2
 constexpr f32 kPiOver4 = 0.78539816339744830961; // pi / 4
 
-class Point;
-class Vector;
+template<mk::VecType V>
+V normalize(V v);
+template<mk::VecType V>
+f32 dot(V a, V b);
+template<mk::VecType V>
+f32 distanceSq(V p, V q);
+template<mk::VecType V>
+f32 distance(V p, V q);
+template<mk::VecType V>
+f32 magnitudeSq(V v);
+template<mk::VecType V>
+f32 magnitude(V v);
+template<mk::VecType V>
+V min(V p, V q);
+template<mk::VecType V>
+V max(V p, V q);
+template<mk::VecType V>
+V operator*(f32 f, V v);
 
-class Transform
-{
-public:
-    Transform() = default;
-    explicit Transform(mat4 mat): data_(mat) {};
+template<mk::Vec3Type V>
+V projectTo(V p, V d);
+template<mk::Vec3Type V>
+V cross(V p, V q);
 
-    static Transform scale(f32 f);
-    static Transform scale(f32 x, f32 y, f32 z);
-
-    static Transform translate(f32 x, f32 y, f32 z);
-
-    static Transform inverse(const Transform& t);
-
-    static Transform rotate(quat q);
-
-    Transform operator*(const Transform& other);
-    Point     operator*(const Point& pt);
-    Vector    operator*(const Vector& vec);
-
-    mlm::mat4& getRaw();
-
-private:
-    mat4 data_;
-};
-
-class Point
-{
-    friend Transform;
-
-public:
-    Point(f32 x, f32 y, f32 z): data_(x, y, z, 1) {}
-    // TODO(Cheese_S): Maybe just force set w to 1
-    Point(vec4 vec): data_(vec)
-    {
-        MK_ASSERT(vec.w() == 1);
-    }
-
-    explicit Point(const Vector& v);
-
-    template<bool IsAligned>
-    explicit Point(details::Vec3<IsAligned> vec3): data_(vec3.x(), vec3.y(), vec3.z(), 1)
-    {
-    }
-
-    f32& x();
-    f32& y();
-    f32& z();
-
-    f32 x() const;
-    f32 y() const;
-    f32 z() const;
-
-    Vector operator-(const Point& rhs) const;
-
-    friend f32 distanceSq(const Point& p, const Point& q);
-    friend f32 distance(const Point& p, const Point& q);
-
-private:
-    vec4 data_;
-};
-
-Vector cross(const Vector& p, const Vector& q);
-Vector normalize(const Vector& vec);
-f32    dot(const Vector& p, const Vector& q);
-f32    magnitudeSq(const Vector& v);
-f32    magnitude(const Vector& v);
-
-class Vector
-{
-    friend Transform;
-
-public:
-    friend Vector cross(const Vector& p, const Vector& q);
-    friend Vector normalize(const Vector& vec);
-    friend f32    dot(const Vector& p, const Vector& q);
-    friend f32    magnitudeSq(const Vector& v);
-    friend f32    magnitude(const Vector& v);
-
-    Vector(f32 x, f32 y, f32 z): data_(x, y, z, 0) {}
-    // TODO(Cheese_S): Maybe just force set w to 0
-    Vector(vec4 vec): data_(vec)
-    {
-        MK_ASSERT(vec.w() == 0);
-    }
-
-    template<bool IsAligned>
-    explicit Vector(details::Vec3<IsAligned> vec3): data_(vec3.x(), vec3.y(), vec3.z(), 0)
-    {
-    }
-
-    explicit Vector(const Point& pt): Vector(pt.x(), pt.y(), pt.z()) {}
-
-    f32& x();
-    f32& y();
-    f32& z();
-
-    f32 x() const;
-    f32 y() const;
-    f32 z() const;
-
-    friend Vector operator*(f32 d, const Vector& v);
-
-private:
-    vec4 data_;
-};
-
-struct Ray
-{
-    mlm::Point  o;
-    mlm::Vector d;
-};
-
-struct Sphere
-{
-    mlm::Point center;
-    f32        r;
-};
-
-struct Bound2d
-{
-    vec2 min;
-    vec2 max;
-};
-
-Point projectTo(const Point& p, const Vector& d);
-f32   toFovY(f32 fovX, f32 aspect);
-
-// ------------------------------- INTERSECTION -------------------------------
-
-bool raySphereIntersection(const Ray& r, const Sphere& s, f32& outT);
-bool rayTriIntersection(const Ray& r, Point v0, Point v1, Point v2);
+f32 toFovY(f32 fovX, f32 aspect);
 
 } // namespace mk::mlm
 
 #define MK_MLM_IMPL
-#include <core/math/IMlm.inl>
+#include <core/mlm/IMlm.inl>
 #undef MK_MLM_IMPL
