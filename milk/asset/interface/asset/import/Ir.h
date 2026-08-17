@@ -5,7 +5,7 @@
 namespace mk::asset::ir
 {
 
-struct Node
+struct Entity
 {
     mlm::mat4   transform;
     u16         meshIndex;
@@ -27,7 +27,7 @@ struct Mesh
 
 struct Ir
 {
-    Vector<Node> nodes;
-    Vector<Mesh> meshes;
+    Vector<Entity> entities;
+    Vector<Mesh>   meshes;
 };
 } // namespace mk::asset::ir

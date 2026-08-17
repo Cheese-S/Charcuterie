@@ -127,26 +127,26 @@ mlm::mat4 getNodeMatrix(const cgltf_node& node)
 
 // returns the collected node's index in irNodes
 // NOLINTNEXTLINE(misc-no-recursion)
-u16 collectNodeTree(const cgltf_data& gltf, const cgltf_node& node, Vector<ir::Node>& irNodes)
+u16 collectEntityTree(const cgltf_data& gltf, const cgltf_node& node, Vector<ir::Entity>& entities)
 {
     MK_ASSERT(node.children_count <= kU16Max);
 
-    u16       index = irNodes.size();
-    ir::Node& irNode = irNodes.push(ir::Node{});
-    irNode.transform = getNodeMatrix(node);
-    irNode.meshIndex = node.mesh - gltf.meshes;
+    u16         index = entities.size();
+    ir::Entity& entity = entities.push(ir::Entity{});
+    entity.transform = getNodeMatrix(node);
+    entity.meshIndex = node.mesh - gltf.meshes;
 
     VectorView<cgltf_node*> children(node.children, node.children_count);
     for (cgltf_node*& child : children)
     {
         MK_ASSERT(child);
-        irNode.children.push(collectNodeTree(gltf, *child, irNodes));
+        entity.children.push(collectEntityTree(gltf, *child, entities));
     }
 
     return index;
 }
 
-void collectNodes(const cgltf_data& gltf, ir::Ir& outIr)
+void collectEntities(const cgltf_data& gltf, ir::Ir& outIr)
 {
     MK_ASSERT(gltf.nodes_count <= kU16Max);
     MK_ASSERT(gltf.scenes_count);
@@ -159,7 +159,7 @@ void collectNodes(const cgltf_data& gltf, ir::Ir& outIr)
         for (cgltf_node*& root : roots)
         {
             MK_ASSERT(root);
-            collectNodeTree(gltf, *root, outIr.nodes);
+            collectEntityTree(gltf, *root, outIr.entities);
         }
     }
 }
@@ -302,7 +302,7 @@ Result GltfIrBuilder::build(ir::Ir& outIr)
                                       "Failed to collect meshes from: {}",
                                       path_.cstr());
 
-    collectNodes(*gltf, outIr);
+    collectEntities(*gltf, outIr);
 
     return Result::eOk;
 }
