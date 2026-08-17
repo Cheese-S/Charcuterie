@@ -70,8 +70,7 @@ void* realloc(void* oldPtr, usize newSize, usize alignment)
         change -= header->size;
         oldPtr = header;
     }
-    void* newPtr =
-        mi_realloc_aligned(oldPtr, newSize + details::kAllocHeaderSize, alignment);
+    void* newPtr = mi_realloc_aligned(oldPtr, newSize + details::kAllocHeaderSize, alignment);
     updateStats(change);
     updateHeader(newPtr, newSize);
     return getUserPtrAddr(newPtr);
@@ -93,6 +92,16 @@ void free(void* ptr)
     header->magic = details::kScrambledMagic;
     updateStats(-header->size);
     mi_free(header);
+}
+
+usize getGoodSize(usize requestedSize)
+{
+    if (!requestedSize)
+    {
+        return 0;
+    }
+
+    return mi_good_size(requestedSize);
 }
 
 i64 getMemSize()
@@ -141,14 +150,12 @@ mi_decl_new(n) void* operator new[](std::size_t n) noexcept(false)
     return mk::mm::alloc(n, mk::mm::details::kDefaultAlignment);
 }
 
-mi_decl_new_nothrow(n) void* operator new(std::size_t           n,
-                                          const std::nothrow_t& tag) noexcept
+mi_decl_new_nothrow(n) void* operator new(std::size_t n, const std::nothrow_t& tag) noexcept
 {
     MK_UNREF(tag);
     return mk::mm::alloc(n, mk::mm::details::kDefaultAlignment);
 }
-mi_decl_new_nothrow(n) void* operator new[](std::size_t           n,
-                                            const std::nothrow_t& tag) noexcept
+mi_decl_new_nothrow(n) void* operator new[](std::size_t n, const std::nothrow_t& tag) noexcept
 {
     MK_UNREF(tag);
     return mk::mm::alloc(n, mk::mm::details::kDefaultAlignment);

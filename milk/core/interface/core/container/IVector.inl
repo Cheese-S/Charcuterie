@@ -204,6 +204,22 @@ void IVector<T, Storage>::resize(usize count)
 }
 
 template<typename T, typename Storage>
+void IVector<T, Storage>::shrinkToFit()
+{
+    usize goodCapcity = storage_.getGoodCapacity(size());
+    if (goodCapcity >= capacity())
+    {
+        return;
+    }
+
+    usize currSize = size();
+    begin_ = storage_.resize(begin_, goodCapcity);
+    end_ = begin_ + currSize;
+    capacity_ = begin_ + goodCapcity;
+    MK_ASSERT(capacity() == goodCapcity);
+}
+
+template<typename T, typename Storage>
 void IVector<T, Storage>::clear()
 {
     destructElems(begin_, size());
@@ -220,6 +236,13 @@ template<typename T, typename Storage>
 const T* IVector<T, Storage>::cdata() const
 {
     return begin_;
+}
+
+template<typename T, typename Storage>
+T& IVector<T, Storage>::back()
+{
+    MK_ASSERT(!empty());
+    return *(end_ - 1);
 }
 
 template<typename T, typename Storage>

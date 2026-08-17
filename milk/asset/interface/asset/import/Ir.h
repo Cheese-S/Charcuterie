@@ -15,6 +15,7 @@ struct Node
 struct MeshPart
 {
     Vector<mlm::PackedVec3> positions;
+    // indices.size() <= kU32Max
     Vector<u16>             indices;
     mlm::Bound              localBound;
 };

@@ -62,10 +62,13 @@ public:
 
     void reserve(usize count);
     void resize(usize count);
+    void shrinkToFit();
     void clear();
 
     T*       data();
     const T* cdata() const;
+
+    T& back();
 
     [[nodiscard]] usize size() const;
     [[nodiscard]] bool  empty() const;

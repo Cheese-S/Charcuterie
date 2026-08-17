@@ -389,6 +389,68 @@ TEST(CrossStorage, HeapAssignFromStack)
     EXPECT_EQ(heap[1], 5);
 }
 
+TEST(Vector, Back)
+{
+    Vector<int> a;
+    a.push(1);
+    EXPECT_EQ(1, a.back());
+    a.back() = 2;
+    EXPECT_EQ(2, a.back());
+    a.back() = 3;
+    EXPECT_NE(2, a.back());
+}
+
+/* ------------------------------------------------------------------------ */
+/*                               shrinkToFit                                */
+/* ------------------------------------------------------------------------ */
+
+TEST(ShrinkToFit, DefaultEmptyDeallocates)
+{
+    Vector<int> v;
+    v.reserve(10000);
+    v.shrinkToFit();
+    EXPECT_EQ(0, v.capacity());
+}
+
+TEST(ShrinkToFit, DefaultReallocateIffSizeDifferenceIsBig)
+{
+    Vector<int> v;
+    v.reserve(1000);
+    v.resize(64);
+    EXPECT_EQ(1000, v.capacity());
+    EXPECT_EQ(64, v.size());
+    v.shrinkToFit();
+    EXPECT_LE(v.capacity(), 1000);
+
+    v.resize(v.capacity());
+    v.shrinkToFit();
+    EXPECT_EQ(v.size(), v.capacity());
+}
+
+TEST(ShrinkToFit, StackEmptyNeverDeallocates)
+{
+    StackVector<int, 1000> v;
+    v.reserve(1000);
+    v.shrinkToFit();
+    EXPECT_EQ(1000, v.capacity());
+}
+
+TEST(ShrinkToFit, FallbackEmptyDeallocates)
+{
+    StackVector<int, 1> v;
+    v.reserve(10000);
+    v.shrinkToFit();
+    EXPECT_EQ(0, v.capacity());
+}
+
+TEST(ShrinkToFit, FixedNeverDeallocates)
+{
+    FixedVector<int, 1000> v;
+    v.reserve(1000);
+    v.shrinkToFit();
+    EXPECT_EQ(1000, v.capacity());
+}
+
 // ─────────────────────────────────────────────
 // VectorView
 // ─────────────────────────────────────────────
@@ -480,5 +542,6 @@ TEST(AsBytesTest, SizeIsCorrect)
 
     EXPECT_EQ(bytes.size(), data.size() * sizeof(double));
 }
+
 } // namespace mk
 MK_SIMPLE_MAIN()

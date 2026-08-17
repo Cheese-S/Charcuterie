@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 #include <core/IType.h>
 #include <core/ITraits.h>
@@ -25,13 +26,14 @@ namespace mk::mm
 
 #define FORCE_MIMALLOC_LINK_ORDER mi_version();
 
-[[nodiscard]] void* alloc(usize requestSize,
-                          usize alignment = details::kDefaultAlignment);
+[[nodiscard]] void* alloc(usize requestSize, usize alignment = details::kDefaultAlignment);
 
 [[nodiscard]] void*
 realloc(void* oldPtr, usize newSize, usize alignment = details::kDefaultAlignment);
 
 void free(void* ptr);
+
+usize getGoodSize(usize requestedSize);
 
 i64 getMemSize();
 
@@ -42,6 +44,11 @@ public:
     [[nodiscard]] T* resize(T* storage, usize newCapacity)
     {
         return static_cast<T*>(mm::realloc(storage, newCapacity * sizeof(T)));
+    }
+
+    usize getGoodCapacity(usize capacity)
+    {
+        return mk::mm::getGoodSize(capacity * sizeof(T)) % sizeof(T);
     }
 
     void free(T* storage)
@@ -64,6 +71,12 @@ public:
         return std::launder(reinterpret_cast<T*>(storage_.bytes));
     }
 
+    usize getGoodCapacity(usize capacity)
+    {
+        MK_ASSERT(capacity <= N);
+        return N;
+    }
+
     void free([[maybe_unused]] T* storage)
     {
         // NO OP
@@ -77,7 +90,7 @@ template<typename T, usize N, typename FallbackStorage>
 class LinearStackStorageWithFallback
 {
 public:
-    LinearStackStorageWithFallback() = default;
+    LinearStackStorageWithFallback(): usingFallback_(false) {};
 
     static constexpr usize kCapcity = N;
 
@@ -100,6 +113,17 @@ public:
             usingFallback_ = true;
         }
         return fallbackStorage;
+    }
+
+    usize getGoodCapacity(usize capacity)
+    {
+        if (!usingFallback_)
+        {
+            MK_ASSERT(capacity <= N);
+            return N;
+        }
+
+        return fallback_.getGoodCapacity(capacity);
     }
 
     void free(T* storage)
