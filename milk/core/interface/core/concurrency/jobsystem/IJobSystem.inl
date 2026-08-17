@@ -375,7 +375,7 @@ void JobSystem<PoolSizeConfig>::decrementJobDependencyCount(details::JobInstance
     }
 
     details::JobInstance::State state = details::JobInstance::State::eAllocated;
-    bool                        success =
+    [[maybe_unused]] bool       success =
         instance.state.compare_exchange_strong(state, details::JobInstance::State::eScheduled);
     MK_ASSERT(success);
 
