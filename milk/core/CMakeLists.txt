@@ -184,7 +184,12 @@ add_test(LogTest
          LIBS milk_core milk_test)
 
 add_test(MlmTest 
-         SOURCES test/math/MlmTest.cpp 
+         SOURCES test/mlm/MlmTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
+
+add_test(UtilTest 
+         SOURCES test/mlm/UtilTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 # END_GEN

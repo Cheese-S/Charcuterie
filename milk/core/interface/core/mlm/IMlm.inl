@@ -4,14 +4,20 @@
 
 namespace mk::mlm::details
 {
-// --------------------------------- VEC ----------------------------------
-
 // ----------------------------------- Vec2 -----------------------------------
 template<typename T, bool IsAligned>
     requires std::is_arithmetic_v<T>
 T& Vec2<T, IsAligned>::operator[](u8 i)
 {
-    MK_ASSERT(i >= 0 && i < 2);
+    MK_ASSERT(i < 2);
+    return data_[i];
+}
+
+template<typename T, bool IsAligned>
+    requires std::is_arithmetic_v<T>
+T Vec2<T, IsAligned>::operator[](u8 i) const
+{
+    MK_ASSERT(i < 2);
     return data_[i];
 }
 
@@ -59,6 +65,13 @@ Vec2<T, IsAligned> Vec2<T, IsAligned>::operator+(Vec2<T, IsAligned> rhs) const
 
 template<typename T, bool IsAligned>
     requires std::is_arithmetic_v<T>
+bool Vec2<T, IsAligned>::operator==(Vec2<T, IsAligned> rhs) const
+{
+    return getRaw() == rhs.getRaw();
+}
+
+template<typename T, bool IsAligned>
+    requires std::is_arithmetic_v<T>
 Vec2<T, IsAligned>::DataType Vec2<T, IsAligned>::getRaw() const
 {
     return data_;
@@ -69,7 +82,14 @@ Vec2<T, IsAligned>::DataType Vec2<T, IsAligned>::getRaw() const
 template<bool IsAligned>
 f32& Vec3<IsAligned>::operator[](u8 i)
 {
-    MK_ASSERT(i >= 0 && i < 3);
+    MK_ASSERT(i < 3);
+    return data_[i];
+}
+
+template<bool IsAligned>
+f32 Vec3<IsAligned>::operator[](u8 i) const
+{
+    MK_ASSERT(i < 3);
     return data_[i];
 }
 
@@ -112,19 +132,31 @@ f32 Vec3<IsAligned>::z() const
 template<bool IsAligned>
 Vec3<IsAligned> Vec3<IsAligned>::operator-(Vec3<IsAligned> rhs) const
 {
-    return data_ - rhs.data_;
+    return getRaw() - rhs.getRaw();
 }
 
 template<bool IsAligned>
 Vec3<IsAligned> Vec3<IsAligned>::operator+(Vec3<IsAligned> rhs) const
 {
-    return Vec3<IsAligned>(data_ + rhs.data_);
+    return Vec3<IsAligned>(getRaw() + rhs.getRaw());
 }
 
 template<bool IsAligned>
 Vec3<IsAligned> Vec3<IsAligned>::operator/(f32 f) const
 {
-    return data_ / f;
+    return getRaw() / f;
+}
+
+template<bool IsAligned>
+Vec3<IsAligned> Vec3<IsAligned>::operator/(Vec3<IsAligned> rhs) const
+{
+    return getRaw() / rhs.getRaw();
+}
+
+template<bool IsAligned>
+bool Vec3<IsAligned>::operator==(Vec3<IsAligned> rhs) const
+{
+    return getRaw() == rhs.getRaw();
 }
 
 template<bool IsAligned>
@@ -203,6 +235,12 @@ Vec4<IsAligned> Vec4<IsAligned>::operator+(Vec4<IsAligned> rhs) const
 }
 
 template<bool IsAligned>
+bool Vec4<IsAligned>::operator==(Vec4<IsAligned> rhs) const
+{
+    return getRaw() == rhs.getRaw();
+}
+
+template<bool IsAligned>
 Vec4<IsAligned>::DataType Vec4<IsAligned>::getRaw() const
 {
     return data_;
@@ -222,7 +260,7 @@ Mat4<IsAligned> Mat4<IsAligned>::operator*(const Mat4<IsAligned>& other)
 }
 
 template<bool IsAligned>
-Vec4<IsAligned> Mat4<IsAligned>::operator*(Vec4<IsAligned> vec)
+Vec4<IsAligned> Mat4<IsAligned>::operator*(Vec4<IsAligned> vec) const
 {
     return Vec4<IsAligned>(this->data_ * vec.getRaw());
 }
@@ -230,26 +268,39 @@ Vec4<IsAligned> Mat4<IsAligned>::operator*(Vec4<IsAligned> vec)
 template<bool IsAligned>
 Mat4<IsAligned>::Vec4DataType& Mat4<IsAligned>::operator[](u8 i)
 {
-    MK_ASSERT(i >= 0 && i < 4);
+    MK_ASSERT(i < 4);
     return data_[i];
+}
+
+template<bool IsAligned>
+Mat4<IsAligned>::Vec4DataType Mat4<IsAligned>::operator[](u8 i) const
+{
+    MK_ASSERT(i < 4);
+    return data_[i];
+}
+
+template<bool IsAligned>
+bool Mat4<IsAligned>::operator==(Mat4<IsAligned> rhs) const
+{
+    return getRaw() == rhs.getRaw();
 }
 
 template<bool IsAligned>
 Mat4<IsAligned> Mat4<IsAligned>::scale(f32 f)
 {
-    return Mat4<IsAligned>(glm::scale(Mat4<IsAligned>::DataType(), { f, f, f }));
+    return Mat4<IsAligned>(glm::scale(Mat4<IsAligned>::DataType(1.0f), { f, f, f }));
 }
 
 template<bool IsAligned>
 Mat4<IsAligned> Mat4<IsAligned>::scale(f32 x, f32 y, f32 z)
 {
-    return Mat4<IsAligned>(glm::scale(Mat4<IsAligned>::DataType(), { x, y, z }));
+    return Mat4<IsAligned>(glm::scale(Mat4<IsAligned>::DataType(1.0f), { x, y, z }));
 }
 
 template<bool IsAligned>
 Mat4<IsAligned> Mat4<IsAligned>::translate(f32 x, f32 y, f32 z)
 {
-    return Mat4<IsAligned>(glm::translate(Mat4<IsAligned>::DataType(), { x, y, z }));
+    return Mat4<IsAligned>(glm::translate(Mat4<IsAligned>::DataType(1.0f), { x, y, z }));
 }
 
 template<bool IsAligned>
@@ -305,21 +356,69 @@ f32 magnitude(V v)
 }
 
 template<mk::VecType V>
-V min(V p, V q)
+V componentWiseMin(V p, V q)
 {
     return glm::min(p.getRaw(), q.getRaw());
+}
+
+template<mk::VecType V>
+V componentWiseMax(V p, V q)
+{
+    return glm::max(p.getRaw(), q.getRaw());
+}
+
+template<mk::VecType V>
+bool anyLessThan(V p, V q)
+{
+    return glm::any(glm::lessThan(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool anyGreaterThan(V p, V q)
+{
+    return glm::any(glm::greaterThan(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool anyLessEqualThan(V p, V q)
+{
+    return glm::any(glm::lessThanEqual(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool anyGreaterEqualThan(V p, V q)
+{
+    return glm::any(glm::greaterThanEqual(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool allLessThan(V p, V q)
+{
+    return glm::all(glm::lessThan(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool allGreaterThan(V p, V q)
+{
+    return glm::all(glm::greaterThan(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool allLessEqualThan(V p, V q)
+{
+    return glm::all(glm::lessThanEqual(p.getRaw(), q.getRaw()));
+}
+
+template<mk::VecType V>
+bool allGreaterEqualThan(V p, V q)
+{
+    return glm::all(glm::greaterThanEqual(p.getRaw(), q.getRaw()));
 }
 
 template<mk::VecType V>
 V operator*(f32 f, V v)
 {
     return V(f * v.getRaw());
-}
-
-template<mk::VecType V>
-V max(V p, V q)
-{
-    return glm::max(p.getRaw(), q.getRaw());
 }
 
 template<mk::Vec3Type V>

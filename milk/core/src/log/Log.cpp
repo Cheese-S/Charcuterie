@@ -245,11 +245,11 @@ Result lexPadding(Lexer& lex, Pad& pad)
         lex.i++;
     }
 
-    u16 count;
+    u16 count = 0;
     while (isdigit(lex.pattern[lex.i]))
     {
         count = count * 10 + lex.pattern[lex.i] - '0';
-        if (count > std::numeric_limits<u8>::max())
+        if (count > kU8Max)
         {
             return Result::eOutOfRange;
         }

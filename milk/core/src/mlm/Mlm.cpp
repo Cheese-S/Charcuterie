@@ -50,9 +50,38 @@ Quat::DataType Quat::getRaw() const
 {
     return data_;
 }
+
+f32& Quat::operator[](u8 i)
+{
+    MK_ASSERT(i < 4);
+    return data_[i];
+}
+
+f32 Quat::operator[](u8 i) const
+{
+    MK_ASSERT(i < 4);
+    return data_[i];
+}
+
 } // namespace details
 
 // --------------------------------- util --------------------------------- //
+
+PackedVec3 transformPoint(const mat4& m, PackedVec3 v)
+{
+    vec4 pt = m * vec4(v.x(), v.y(), v.z(), 1);
+    if (pt.w() != 1.0f)
+    {
+        pt = (1 / pt.w()) * pt;
+    }
+    return PackedVec3(pt.x(), pt.y(), pt.z());
+}
+
+PackedVec3 transformVector(const mat4& m, PackedVec3 v)
+{
+    vec4 vec = m * vec4(v.x(), v.y(), v.z(), 0);
+    return PackedVec3(vec.x(), vec.y(), vec.z());
+}
 
 f32 toFovY(f32 fovX, f32 aspect)
 {

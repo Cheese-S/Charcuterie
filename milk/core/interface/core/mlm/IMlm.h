@@ -44,6 +44,7 @@ public:
     Vec2(DataType raw): data_(raw) {};
 
     T& operator[](u8 i);
+    T  operator[](u8 i) const;
 
     T& x();
     T& y();
@@ -53,6 +54,7 @@ public:
 
     Vec2 operator-(Vec2 rhs) const;
     Vec2 operator+(Vec2 rhs) const;
+    bool operator==(Vec2 rhs) const;
 
     DataType getRaw() const;
 
@@ -88,9 +90,12 @@ public:
     f32 z() const;
 
     f32& operator[](u8 i);
+    f32  operator[](u8 i) const;
     Vec3 operator-(Vec3 rhs) const;
     Vec3 operator+(Vec3 rhs) const;
     Vec3 operator/(f32 f) const;
+    Vec3 operator/(Vec3 rhs) const;
+    bool operator==(Vec3 rhs) const;
 
     DataType getRaw() const;
 
@@ -129,8 +134,10 @@ public:
     f32 w() const;
 
     f32& operator[](u8 i);
+    f32  operator[](u8 i) const;
     Vec4 operator-(Vec4 rhs) const;
     Vec4 operator+(Vec4 rhs) const;
+    bool operator==(Vec4 rhs) const;
 
     friend Vec4 operator*(f32 f, const Vec4& v)
     {
@@ -161,6 +168,10 @@ public:
     f32 y() const;
     f32 z() const;
     f32 w() const;
+
+    f32& operator[](u8 i);
+    f32  operator[](u8 i) const;
+    bool operator==(Quat rhs) const;
 
     DataType getRaw() const;
 
@@ -215,9 +226,11 @@ public:
 
     Mat4 operator*(const Mat4& other);
 
-    Vec4<IsAligned> operator*(Vec4<IsAligned> vec);
+    Vec4<IsAligned> operator*(Vec4<IsAligned> vec) const;
 
     Vec4DataType& operator[](u8 i);
+    Vec4DataType  operator[](u8 i) const;
+    bool          operator==(Mat4 rhs) const;
 
     const DataType& getRaw() const;
 
@@ -312,16 +325,38 @@ f32 magnitudeSq(V v);
 template<mk::VecType V>
 f32 magnitude(V v);
 template<mk::VecType V>
-V min(V p, V q);
+V componentWiseMin(V p, V q);
 template<mk::VecType V>
-V max(V p, V q);
+V componentWiseMax(V p, V q);
+template<mk::VecType V>
+bool anyLessThan(V p, V q);
+template<mk::VecType V>
+bool anyGreaterThan(V p, V q);
+template<mk::VecType V>
+bool allLessThan(V p, V q);
+template<mk::VecType V>
+bool allGreaterThan(V p, V q);
+template<mk::VecType V>
+bool anyLessEqualThan(V p, V q);
+template<mk::VecType V>
+bool anyGreaterEqualThan(V p, V q);
+template<mk::VecType V>
+bool allLessEqualThan(V p, V q);
+template<mk::VecType V>
+bool allGreaterEqualThan(V p, V q);
+
 template<mk::VecType V>
 V operator*(f32 f, V v);
+template<mk::VecType V>
+V operator/(f32 f, V v);
 
 template<mk::Vec3Type V>
 V projectTo(V p, V d);
 template<mk::Vec3Type V>
 V cross(V p, V q);
+
+PackedVec3 transformPoint(const mat4& m, PackedVec3 v);
+PackedVec3 transformVector(const mat4& m, PackedVec3 v);
 
 f32 toFovY(f32 fovX, f32 aspect);
 
