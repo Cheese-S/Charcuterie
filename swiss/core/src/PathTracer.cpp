@@ -4,10 +4,12 @@
 #include <core/log/ISink.h>
 #include <core/log/IFormatter.h>
 #include <core/mlm/IUtil.h>
+#include <core/mlm/IFormatter.h>
 
 #include <asset/import/builder/ITemplateAssetBuilder.h>
 #include <asset/export/raw/IPpm.h>
-#include <swiss/PathTracer.h>
+#include <swiss/core/PathTracer.h>
+#include <swiss/render/Bvh.h>
 
 MK_ADD_AND_DEFINE_LOG_CATEGORY(PathTracer, "PathTracer");
 
@@ -73,7 +75,7 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
 
     UniquePtr<render::PerspectiveCamera> camera;
     {
-        mlm::mat4    worldToCamera;
+        mlm::mat4    worldToCamera = mlm::mat4::translate(0, -1.0, 5.5);
         mlm::u16vec2 resolution(800, 600);
         camera = makeUnique<render::PerspectiveCamera>(
             worldToCamera,
@@ -85,7 +87,7 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
 
     outPathTracer = makeUnique<PathTracer>(std::move(vfs),
                                            std::move(logSystem),
-                                           std::move(jobSystem),
+                                           std::move(nullptr),
                                            std::move(camera),
                                            PathTracerPasskey());
 
@@ -111,27 +113,49 @@ PathTracer::~PathTracer()
 
 Result PathTracer::run()
 {
-    // asset::ir::Ir ir;
-    //
-    // MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
-    //     asset::TemplateAssetBuilder::build(fs::Path("asset/box.glb"), ir),
-    //     "Failed to build asset.");
-    //
-    // mlm::Sphere  sphere = { .center = mlm::Point(0, 0, 6), .r = 2.0f };
-    mlm::PackedVec3 v2 = mlm::PackedVec3(-5, -2, 8);
-    mlm::PackedVec3 v1 = mlm::PackedVec3(5, -2, 8);
+    asset::ir::Ir ir;
+
+    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
+        asset::TemplateAssetBuilder::build(fs::Path("../asset/bunny.glb"), ir),
+        "Failed to build asset.");
+
+    MK_LOG_DEBUG("indices size: {}", ir.meshes[0].parts[0].indices.size());
+    render::Bvh bvh(std::move(ir));
+
+    // mlm::Sphere     sphere = { .center = mlm::PackedVec3(0, 0, 6), .r = 2.0f };
+    mlm::PackedVec3 v2 = mlm::PackedVec3(-5, 0, 8);
+    mlm::PackedVec3 v1 = mlm::PackedVec3(5, 0, 8);
     mlm::PackedVec3 v0 = mlm::PackedVec3(0, 5, 8);
     mlm::u16vec2    resolution = camera_->getResolution();
 
     Vector<f32> pixels;
+
     for (u16 y = 0; y < resolution.y(); y++)
     {
+        MK_LOG_DEBUG("tracing: {}", y);
         for (u16 x = 0; x < resolution.x(); x++)
         {
             mlm::Ray ray = camera_->sampleRay(x, y);
-            // f32      t = 0;
-            if (mlm::rayTriIntersection(ray, v0, v1, v2))
+            // if (mlm::rayTriIntersection(ray, 1000, v0, v1, v2))
+            // {
+            //     pixels.push(1.0f);
+            //     pixels.push(1.0f);
+            //     pixels.push(1.0f);
+            //     minX = std::min(minX, x);
+            //     minY = std::min(minY, y);
+            //     maxX = std::max(maxX, x);
+            //     maxY = std::max(maxY, y);
+            // }
+            // else
+            // {
+            //     pixels.push(0.0f);
+            //     pixels.push(0.0f);
+            //     pixels.push(0.0f);
+            // }
+
+            if (bvh.intersect(ray, kF32Infinity))
             {
+                // MK_LOG_DEBUG("intersected!");
                 pixels.push(1.0f);
                 pixels.push(1.0f);
                 pixels.push(1.0f);
@@ -145,11 +169,11 @@ Result PathTracer::run()
         }
     }
 
-    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(asset::exp::savePpm(fs::Path("swiss_out/result.ppm"),
-                                                          pixels,
-                                                          resolution.x(),
-                                                          resolution.y()),
-                                      "Failed to write to ppm.");
+    MK_LOG_DEBUG("got here");
+
+    MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
+        asset::exp::savePpm(fs::Path("result.ppm"), pixels, resolution.x(), resolution.y()),
+        "Failed to write to ppm.");
 
     MK_LOG_INFO("Finished!");
 

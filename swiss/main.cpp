@@ -1,5 +1,5 @@
 #include <core/IMemory.h>
-#include <swiss/PathTracer.h>
+#include <swiss/core/PathTracer.h>
 #include <core/log/IRawLog.h>
 
 namespace mk::swiss
@@ -23,6 +23,6 @@ bool run()
 int main()
 {
     mk::mm::details::forceMiMallocLinkOrder();
-    MK_ASSERT(mk::swiss::run());
+    mk::swiss::run();
     return 0;
 }

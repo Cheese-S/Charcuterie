@@ -41,7 +41,9 @@ PerspectiveCamera::PerspectiveCamera(const mlm::mat4& worldToCamera,
                                      mlm::u16vec2     resolution,
                                      f32              fovY,
                                      f32              n,
-                                     f32 f): resolution_(resolution), worldToCamera_(worldToCamera)
+                                     f32              f):
+    resolution_(resolution), worldToCamera_(worldToCamera),
+    cameraToWorld_(mlm::mat4::inverse(worldToCamera_))
 {
     f32       cotHalfFovY = 1.0F / (std::tan(fovY / 2));
     // clang-format off
@@ -68,19 +70,15 @@ PerspectiveCamera::PerspectiveCamera(const mlm::mat4& worldToCamera,
 
 mlm::Ray PerspectiveCamera::sampleRay(u16 pixelX, u16 pixelY)
 {
-    f32 rasterX = (pixelX + 0.5F);
-    f32 rasterY = (pixelY + 0.5F);
-
-    mlm::vec4 pt = rasterToCamera_ * mlm::vec4(rasterX, rasterY, 0.0f, 1.0f);
-    if (pt.w() != 1.0f)
-    {
-        pt = (1 / pt.w()) * pt;
-    }
+    f32             rasterX = (pixelX + 0.5F);
+    f32             rasterY = (pixelY + 0.5F);
+    mlm::PackedVec3 pt = mlm::vec3(rasterX, rasterY, 0.0f);
     mlm::PackedVec3 o = mlm::PackedVec3(0, 0, 0);
-    return mlm::Ray{
-        .o = o,
-        .d = mlm::normalize(mlm::PackedVec3(pt.x(), pt.y(), pt.z())),
-    };
+    return mlm::transformRay(cameraToWorld_,
+                             mlm::Ray{
+                                 .o = o,
+                                 .d = mlm::normalize(mlm::transformPoint(rasterToCamera_, pt)),
+                             });
 }
 
 } // namespace mk::swiss::render

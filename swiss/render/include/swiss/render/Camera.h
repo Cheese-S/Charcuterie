@@ -25,6 +25,7 @@ private:
 
     // TODO(Cheese_S): Probably replace this
     mlm::mat4 worldToCamera_;
+    mlm::mat4 cameraToWorld_;
     mlm::mat4 rasterToCamera_;
 };
 } // namespace mk::swiss::render

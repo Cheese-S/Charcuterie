@@ -5,28 +5,15 @@ project(
     LANGUAGES CXX
 )
 
+add_subdirectory(render)
+add_subdirectory(core)
+
 add_executable(swiss
     main.cpp
-
-    # BEGIN_FILE_GEN src/
-
-	src/PathTracer.cpp
-
-    # END_GEN
-
-    # BEGIN_FILE_GEN src/render/
-
-	src/render/Bvh.cpp
-	src/render/Camera.cpp
-
-    # END_GEN
-)
-
-target_include_directories(swiss PRIVATE
-    include
 )
 
 target_link_libraries(swiss PRIVATE
-    milk_core       
-    milk_asset
+    swiss_core
+    swiss_render
+    milk_core
 )
