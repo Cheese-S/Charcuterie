@@ -45,6 +45,12 @@ namespace mk::asset
 namespace
 {
 
+inline mlm::PackedVec3 toMkVec(mlm::PackedVec3 v)
+{
+    v.z() *= -1;
+    return v;
+}
+
 Result toResult(cgltf_result result)
 {
     switch (result)
@@ -72,26 +78,26 @@ Result toResult(cgltf_result result)
 mlm::mat4 getNodeMatrix(const cgltf_node& node)
 {
     mlm::mat4 flipz = mlm::mat4::scale(1, 1, -1);
-    mlm::mat4 transform;
-
     if (node.has_matrix)
     {
-        transform = mlm::mat4(node.matrix[0],
-                              node.matrix[1],
-                              node.matrix[2],
-                              node.matrix[3],
-                              node.matrix[4],
-                              node.matrix[5],
-                              node.matrix[6],
-                              node.matrix[7],
-                              node.matrix[8],
-                              node.matrix[9],
-                              node.matrix[10],
-                              node.matrix[11],
-                              node.matrix[12],
-                              node.matrix[13],
-                              node.matrix[14],
-                              node.matrix[15]);
+        mlm::mat4 m = mlm::mat4(node.matrix[0],
+                                node.matrix[1],
+                                node.matrix[2],
+                                node.matrix[3],
+                                node.matrix[4],
+                                node.matrix[5],
+                                node.matrix[6],
+                                node.matrix[7],
+                                node.matrix[8],
+                                node.matrix[9],
+                                node.matrix[10],
+                                node.matrix[11],
+                                node.matrix[12],
+                                node.matrix[13],
+                                node.matrix[14],
+                                node.matrix[15]);
+        // mlm::mat4::inverse(flipz) == flipz
+        return flipz * m * flipz;
     }
 
     mlm::mat4 scale = mlm::mat4::scale(1);
@@ -115,6 +121,7 @@ mlm::mat4 getNodeMatrix(const cgltf_node& node)
             mlm::quat(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]));
     }
 
+    // mlm::mat4::inverse(flipz) == flipz
     return flipz * translate * rotate * scale * flipz;
 }
 
@@ -122,7 +129,7 @@ mlm::mat4 getNodeMatrix(const cgltf_node& node)
 // NOLINTNEXTLINE(misc-no-recursion)
 u16 collectNodeTree(const cgltf_data& gltf, const cgltf_node& node, Vector<ir::Node>& irNodes)
 {
-    MK_ASSERT(node.children_count <= UINT16_MAX);
+    MK_ASSERT(node.children_count <= kU16Max);
 
     u16       index = irNodes.size();
     ir::Node& irNode = irNodes.push(ir::Node{});
@@ -141,8 +148,9 @@ u16 collectNodeTree(const cgltf_data& gltf, const cgltf_node& node, Vector<ir::N
 
 void collectNodes(const cgltf_data& gltf, ir::Ir& outIr)
 {
-    MK_ASSERT(gltf.nodes_count <= UINT16_MAX);
-    VectorView<cgltf_scene> scenes;
+    MK_ASSERT(gltf.nodes_count <= kU16Max);
+    MK_ASSERT(gltf.scenes_count);
+    VectorView<cgltf_scene> scenes(gltf.scenes, gltf.scenes_count);
 
     for (const cgltf_scene& scene : scenes)
     {
@@ -205,6 +213,12 @@ Result collectMeshes(const cgltf_data& gltf, ir::Ir& outIr)
                                                     cgltf_component_type_r_32u,
                                                 Result::eInvalidParam,
                                                 "Only supports u16 indices.");
+            MK_LOG_ERROR_AND_RETURN_RET_IF_TRUE(
+                indicesAccessor->count >= kU32Max,
+                Result::eInvalidParam,
+                "Exceeded the number of supported indices. Max: {}, given: {}",
+                kU32Max,
+                indicesAccessor->count);
             part.indices.resize(indicesAccessor->count);
             readAccessorData<u16>(*indicesAccessor, { part.indices.data(), part.indices.size() });
 
@@ -221,9 +235,15 @@ Result collectMeshes(const cgltf_data& gltf, ir::Ir& outIr)
                 }
             }
 
-            for (const auto position : part.positions)
+            for (auto& position : part.positions)
             {
+                position = toMkVec(position);
                 part.localBound.include(position);
+            }
+
+            for (size_t i = 0; i + 2 < part.indices.size(); i += 3)
+            {
+                std::swap(part.indices[i + 1], part.indices[i + 2]);
             }
 
             irMesh.parts.push(std::move(part));
@@ -262,6 +282,8 @@ Result GltfIrBuilder::build(ir::Ir& outIr)
         options.memory.free_func = cgltfMkFreeBridge;
         options.memory.user_data = nullptr;
 
+        // Going to be filled by cgltf_parse
+        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
         cgltf_data* raw;
         MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
             toResult(cgltf_parse(&options, bytes.data(), bytes.size(), &raw)),
