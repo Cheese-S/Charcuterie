@@ -5,13 +5,13 @@
 namespace mk::mlm
 {
 // -------------------------------- BOUND --------------------------------- //
-void Bound::include(PackedVec3 pt)
+void Bound::toInclude(PackedVec3 pt)
 {
     min() = mlm::componentWiseMin(pt, min());
     max() = mlm::componentWiseMax(pt, max());
 }
 
-void Bound::include(const Bound& other)
+void Bound::toInclude(const Bound& other)
 {
     min() = mlm::componentWiseMin(other.min(), min());
     max() = mlm::componentWiseMax(other.max(), max());
@@ -26,6 +26,17 @@ f32 Bound::surfaceArea() const
 bool Bound::empty() const
 {
     return anyLessThan<PackedVec3>(max(), min());
+}
+
+bool Bound::doesInclude(PackedVec3 pt) const
+{
+    return mlm::allGreaterEqualThan(pt, min()) && mlm::allLessEqualThan(pt, max());
+}
+
+bool Bound::doesInclude(const Bound& other) const
+{
+    return mlm::allLessEqualThan(min(), other.min()) &&
+           mlm::allGreaterEqualThan(max(), other.max());
 }
 
 // ------------------------------ INTERSECT ------------------------------- //

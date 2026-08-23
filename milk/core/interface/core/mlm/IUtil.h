@@ -7,11 +7,19 @@ namespace mk::mlm
 class Bound
 {
 public:
-    Bound(): extents_({ kF32Infinity, kF32Infinity, kF32Infinity }, { kF32NegInfinity, kF32NegInfinity, kF32NegInfinity }) {}
+    Bound():
+        extents_({ kF32Infinity, kF32Infinity, kF32Infinity },
+                 { kF32NegInfinity, kF32NegInfinity, kF32NegInfinity })
+    {
+    }
     Bound(PackedVec3 inMin, PackedVec3 inMax): extents_(inMin, inMax) {}
 
-    void include(PackedVec3 pt);
-    void include(const Bound& other);
+    void toInclude(PackedVec3 pt);
+    void toInclude(const Bound& other);
+
+    bool doesInclude(PackedVec3 pt) const;
+    bool doesInclude(const Bound& other) const;
+
     f32  surfaceArea() const;
     bool empty() const;
 
