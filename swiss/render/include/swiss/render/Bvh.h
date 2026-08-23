@@ -2,6 +2,11 @@
 
 #include <asset/import/Ir.h>
 
+#ifndef MK_BVH_TEST_FRIEND
+    #define MK_BVH_TEST_FRIEND
+#endif
+
+// TODO(Cheese_S): optimize + figure out how we can accomdate BLAS and TLAS
 namespace mk::swiss::render
 {
 class Bvh
@@ -37,11 +42,10 @@ class Bvh
 
     static constexpr u8 kNumSahBins = 12;
 
+    MK_BVH_TEST_FRIEND
 public:
     Bvh(asset::ir::Ir&& ir);
     bool intersect(const mlm::Ray& r, f32 tMax) const;
-
-    mutable Vector<u16> seenTri;
 
 private:
     static Axis chooseSplitAxis(const mlm::Bound& bound);
@@ -55,4 +59,9 @@ private:
     Vector<Tri>           tris_;
     StackVector<Node, 64> nodes_;
 };
+
+#ifdef MK_BVH_TEST_FRIEND
+    #undef MK_BVH_TEST_FRIEND
+#endif
+
 } // namespace mk::swiss::render

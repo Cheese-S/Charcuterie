@@ -9,19 +9,22 @@ MK_ADD_AND_DEFINE_LOG_CATEGORY(Bvh, "Bvh");
 
 namespace mk::swiss::render
 {
+
 Bvh::Bvh(asset::ir::Ir&& ir): ir_(std::move(ir))
 {
-    MK_ASSERT(!ir_.meshes.empty());
-    for (const auto& node : ir_.nodes)
+    MK_ASSERT(!ir_.entities.empty());
+
+    for (const auto& entity : ir_.entities)
     {
-        if (node.meshIndex == 0)
+        if (entity.meshIndex == 0)
         {
-            worldToLocal_ = mlm::mat4::inverse(node.transform);
+            worldToLocal_ = mlm::mat4::inverse(entity.transform);
             break;
         }
     }
 
     buildPart(ir_.meshes[0].parts[0]);
+    nodes_.shrinkToFit();
 }
 
 bool Bvh::intersect(const mlm::Ray& r, f32 tMax) const
@@ -75,7 +78,7 @@ void Bvh::buildPart(const asset::ir::MeshPart& part)
 {
     MK_ASSERT((part.indices.size() % 3) == 0);
 
-    tris_.reserve(part.indices.size() / 3);
+    tris_.reserve(2 * part.indices.size() / 3 - 1);
 
     // NOLINTNEXTLINE(bugprone-too-small-loop-variable)
     for (u32 i = 0; i < part.indices.size(); i += 3)
@@ -90,9 +93,9 @@ void Bvh::buildPart(const asset::ir::MeshPart& part)
             .bound = {},
         });
 
-        tris_.back().bound.include(v0);
-        tris_.back().bound.include(v1);
-        tris_.back().bound.include(v2);
+        tris_.back().bound.toInclude(v0);
+        tris_.back().bound.toInclude(v1);
+        tris_.back().bound.toInclude(v2);
     }
 
     // TODO(Cheese_S): we will have TLAS and BLAS. SO u16 is not good enough.
@@ -108,6 +111,7 @@ void Bvh::buildPart(const asset::ir::MeshPart& part)
     split(root);
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 void Bvh::split(Bvh::Node& parent)
 {
     MK_ASSERTF(parent.triCount >= 2, "Unexpected triCount: {}", parent.triCount);
@@ -134,8 +138,8 @@ void Bvh::split(Bvh::Node& parent)
     mlm::Bound centeroidsBound;
     for (u32 i = 0; i < parent.triCount; i++)
     {
-        centeroidsBound.include(tris_[parent.triStart + i].centeroid);
-        totalBound.include(tris_[parent.triStart + i].bound);
+        centeroidsBound.toInclude(tris_[parent.triStart + i].centeroid);
+        totalBound.toInclude(tris_[parent.triStart + i].bound);
     }
 
     Axis axis = chooseSplitAxis(centeroidsBound);
@@ -155,7 +159,7 @@ void Bvh::split(Bvh::Node& parent)
         SahBin& bin = bins[b];
 
         bin.count++;
-        bin.bound.include(tri.bound);
+        bin.bound.toInclude(tri.bound);
     }
 
     // We consider the cost to be C = T_traversal + P_a * sum_(i=1)^N_a T_intersect + P_b *
@@ -184,10 +188,10 @@ void Bvh::split(Bvh::Node& parent)
         costs[i] = 0;
 
         acc.count += bin.count;
-        acc.bound.include(bin.bound);
+        acc.bound.toInclude(bin.bound);
         if (i)
         {
-            acc.bound.include(accBelow[i - 1].bound);
+            acc.bound.toInclude(accBelow[i - 1].bound);
             acc.count += accBelow[i - 1].count;
         }
 
@@ -203,10 +207,10 @@ void Bvh::split(Bvh::Node& parent)
         acc = {};
 
         acc.count += bin.count;
-        acc.bound.include(bin.bound);
+        acc.bound.toInclude(bin.bound);
         if (i < kNumSahSplits - 1)
         {
-            acc.bound.include(accAbove[i + 1].bound);
+            acc.bound.toInclude(accAbove[i + 1].bound);
             acc.count += accAbove[i + 1].count;
         }
 
@@ -227,6 +231,8 @@ void Bvh::split(Bvh::Node& parent)
     {
         return;
     }
+
+    MK_ASSERT(accBelow[minCostBin].count && accAbove[minCostBin].count);
 
     std::partition(tris_.begin() + parent.triStart,
                    tris_.begin() + parent.triStart + parent.triCount,
@@ -256,10 +262,6 @@ void Bvh::split(Bvh::Node& parent)
 
     if (nodes_.back().triCount > 1)
     {
-        MK_LOG_DEBUG("splitting right: {}, parent.triStart: {}, minCostBin: {}",
-                     nodes_.back().triStart,
-                     parent.triStart,
-                     accBelow[minCostBin].count);
         split(nodes_.back());
     }
 }
