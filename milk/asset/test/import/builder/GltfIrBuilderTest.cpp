@@ -105,10 +105,10 @@ TEST_F(GltfIrBuilderTest, BuildsTriangle)
     EXPECT_FLOAT_EQ(part.localBound.max().y(), 8.0F);
     EXPECT_FLOAT_EQ(part.localBound.max().z(), -3.0F);
 
-    ASSERT_EQ(ir.nodes.size(), 1);
-    EXPECT_EQ(ir.nodes[0].meshIndex, 0);
-    EXPECT_TRUE(ir.nodes[0].children.empty());
-    EXPECT_EQ(ir.nodes[0].transform, mlm::mat4());
+    ASSERT_EQ(ir.entities.size(), 1);
+    EXPECT_EQ(ir.entities[0].meshIndex, 0);
+    EXPECT_TRUE(ir.entities[0].children.empty());
+    EXPECT_EQ(ir.entities[0].transform, mlm::mat4());
 }
 
 TEST_F(GltfIrBuilderTest, MissingFile)

@@ -238,7 +238,7 @@ Result collectMeshes(const cgltf_data& gltf, ir::Ir& outIr)
             for (auto& position : part.positions)
             {
                 position = toMkVec(position);
-                part.localBound.include(position);
+                part.localBound.toInclude(position);
             }
 
             for (size_t i = 0; i + 2 < part.indices.size(); i += 3)
