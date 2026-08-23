@@ -23,7 +23,7 @@ class SharedMutex
 
 public:
     MK_NON_MOVABLE_NON_COPYABLE(SharedMutex);
-    SharedMutex() = default;
+    SharedMutex(): state_(0) {};
 
     void               lock();
     [[nodiscard]] bool tryLock(util::Duration duration = util::kImmediate);
