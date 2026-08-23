@@ -19,23 +19,44 @@ namespace mk::mm
 // TODO(Cheese_S): make stats thread safe
 // TODO(Cheese_S): implement leak detector
 
-// ---------------------------------------- HEAP ALLOCATOR
-// ----------------------------------------
-
+// A memory allocation looks like this:
+// ┌──────────────┬──────────────┬─────────────────────────┐
+// │    Padding   │    Header    │      User Allocation    │
+// └──────────────┴──────────────┴─────────────────────────┘
+// <---------------------- MiMallocSize ------------------->
+//                                <--- Aligned User Size -->
 namespace
 {
 
-details::MemStats stats = {};
+MemStats stats = {};
 
-inline details::AllocHeader* getHeader(void* userPtr)
+inline usize getRawSize(usize alignedUserSize, usize alignment)
 {
-    return reinterpret_cast<details::AllocHeader*>(static_cast<u8*>(userPtr) -
-                                                   details::kAllocHeaderSize);
+    return details::align(alignedUserSize + kAllocHeaderSize, alignment);
 }
 
-inline void* getUserPtrAddr(void* headerPtr)
+inline void* getRaw(void* user, usize alignedUserSize, usize alignment)
 {
-    return static_cast<u8*>(headerPtr) + details::kAllocHeaderSize;
+    usize rawSize = getRawSize(alignedUserSize, alignment);
+    return static_cast<u8*>(user) - (rawSize - alignedUserSize);
+}
+
+inline AllocHeader* getHeaderFromMiMalloc(void* miMalloc, usize alignedUserSize, usize alignment)
+{
+    usize rawSize = getRawSize(alignedUserSize, alignment);
+    usize paddingSize = rawSize - kAllocHeaderSize - alignedUserSize;
+    return reinterpret_cast<AllocHeader*>(static_cast<u8*>(miMalloc) + paddingSize);
+}
+
+inline AllocHeader* getHeaderFromUser(void* user)
+{
+    return reinterpret_cast<AllocHeader*>(static_cast<u8*>(user) - kAllocHeaderSize);
+}
+
+inline void* getUser(void* miMalloc, usize alignedUserSize, usize alignment)
+{
+    usize rawSize = getRawSize(alignedUserSize, alignment);
+    return static_cast<u8*>(miMalloc) + (rawSize - alignedUserSize);
 }
 
 inline void updateStats(i64 change)
@@ -44,54 +65,65 @@ inline void updateStats(i64 change)
     stats.size.fetch_add(change, std::memory_order_relaxed);
 }
 
-inline void updateHeader(void* headerAddr, usize size)
+inline void updateHeader(void* headerAddr, usize size, usize alignment)
 {
-    details::AllocHeader* header = static_cast<details::AllocHeader*>(headerAddr);
+    AllocHeader* header = static_cast<AllocHeader*>(headerAddr);
     header->size = size;
-    header->magic = details::kHeaderMagic;
+    header->magic = kHeaderMagic;
+    header->alignment = alignment;
 }
 
 } // namespace
 
-void* alloc(usize requestSize, usize alignment)
+void* alloc(usize userSize, usize alignment)
 {
-    void* ptr = mi_malloc_aligned(details::kAllocHeaderSize + requestSize, alignment);
-    updateHeader(ptr, requestSize);
-    updateStats(requestSize);
-    return getUserPtrAddr(ptr);
+    usize alignedUserSize = details::align(userSize, alignment);
+    void* raw = mi_malloc_aligned(getRawSize(alignedUserSize, alignment), alignment);
+    void* header = getHeaderFromMiMalloc(raw, alignedUserSize, alignment);
+    updateHeader(header, userSize, alignment);
+    updateStats(userSize);
+    void* user = getUser(raw, alignedUserSize, alignment);
+    MK_ASSERT(std::bit_cast<uptr>(user) % alignment == 0);
+    return user;
 }
 
-void* realloc(void* oldPtr, usize newSize, usize alignment)
+void* realloc(void* user, usize newSize, usize alignment)
 {
-    i64 change = newSize;
-    if (oldPtr != nullptr)
+    void* raw = nullptr;
+    i64   change = newSize;
+    if (user)
     {
-        details::AllocHeader* header = getHeader(oldPtr);
+        AllocHeader* header = getHeaderFromUser(user);
+        usize        alignedUserSize = details::align(header->size, header->alignment);
+        raw = getRaw(user, alignedUserSize, header->alignment);
         change -= header->size;
-        oldPtr = header;
     }
-    void* newPtr = mi_realloc_aligned(oldPtr, newSize + details::kAllocHeaderSize, alignment);
+    usize alignedNewSize = details::align(newSize, alignment);
+    void* newRaw = mi_realloc_aligned(raw, getRawSize(alignedNewSize, alignment), alignment);
+    void* header = getHeaderFromMiMalloc(newRaw, alignedNewSize, alignment);
+    void* newUser = getUser(newRaw, alignedNewSize, alignment);
     updateStats(change);
-    updateHeader(newPtr, newSize);
-    return getUserPtrAddr(newPtr);
+    updateHeader(header, newSize, alignment);
+    MK_ASSERT(std::bit_cast<uptr>(newUser) % alignment == 0);
+    return newUser;
 }
 
-void free(void* ptr)
+void free(void* user)
 {
-    if (ptr == nullptr)
+    if (!user)
     {
         return;
     }
-    details::AllocHeader* header = getHeader(ptr);
 
-    if (header->magic == details::kScrambledMagic)
-    {
-        MK_ASSERTF(false, "detected double free");
-    }
-    MK_ASSERT(header->magic == details::kHeaderMagic);
-    header->magic = details::kScrambledMagic;
+    AllocHeader* header = getHeaderFromUser(user);
+
+    MK_ASSERTF(header->magic != kScrambledMagic, "detected double free");
+    MK_ASSERT(header->magic == kHeaderMagic);
+
+    header->magic = kScrambledMagic;
     updateStats(-header->size);
-    mi_free(header);
+    usize alignedUserSize = details::align(header->size, header->alignment);
+    mi_free(getRaw(user, alignedUserSize, header->alignment));
 }
 
 usize getGoodSize(usize requestedSize)

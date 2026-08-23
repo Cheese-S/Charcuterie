@@ -26,12 +26,12 @@ namespace mk::mm
 
 #define FORCE_MIMALLOC_LINK_ORDER mi_version();
 
-[[nodiscard]] void* alloc(usize requestSize, usize alignment = details::kDefaultAlignment);
+[[nodiscard]] void* alloc(usize userSize, usize alignment = details::kDefaultAlignment);
 
 [[nodiscard]] void*
-realloc(void* oldPtr, usize newSize, usize alignment = details::kDefaultAlignment);
+realloc(void* user, usize newSize, usize alignment = details::kDefaultAlignment);
 
-void free(void* ptr);
+void free(void* user);
 
 usize getGoodSize(usize requestedSize);
 
@@ -71,7 +71,7 @@ public:
         return std::launder(reinterpret_cast<T*>(storage_.bytes));
     }
 
-    usize getGoodCapacity(usize capacity)
+    usize getGoodCapacity([[maybe_unused]] usize capacity)
     {
         MK_ASSERT(capacity <= N);
         return N;
@@ -115,7 +115,7 @@ public:
         return fallbackStorage;
     }
 
-    usize getGoodCapacity(usize capacity)
+    usize getGoodCapacity([[maybe_unused]] usize capacity)
     {
         if (!usingFallback_)
         {

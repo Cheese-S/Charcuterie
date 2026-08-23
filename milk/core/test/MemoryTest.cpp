@@ -1,6 +1,8 @@
 #include <test/ISimpleTest.h>
+#include <core/IMemory.h>
 #include <core/ISharedPtr.h>
 #include <core/IUniquePtr.h>
+#include <new>
 
 namespace mk
 {
@@ -807,6 +809,209 @@ TEST_F(TrackerMtTest, RefCountIntegrityUnderContention)
 
     EXPECT_EQ(shared.getCount(), 1U);
     EXPECT_EQ(Tracker::instances_.load(), 1);
+}
+
+// ═════════════════════════════════════════════
+// mm allocator — alloc / realloc / free / new
+// ═════════════════════════════════════════════
+
+TEST(MmAllocator, AllocDefaultAlignment)
+{
+    void* p = mm::alloc(100);
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(reinterpret_cast<uptr>(p) % mm::details::kDefaultAlignment, 0U);
+    mm::free(p);
+}
+
+TEST(MmAllocator, AllocReturnsAligned)
+{
+    const usize alignments[] = { 16, 64, 256 };
+    const usize sizes[] = { 1, 16, 100, 1024 };
+
+    for (usize alignment : alignments)
+    {
+        for (usize size : sizes)
+        {
+            void* p = mm::alloc(size, alignment);
+            ASSERT_NE(p, nullptr);
+            EXPECT_EQ(reinterpret_cast<uptr>(p) % alignment, 0U);
+            mm::free(p);
+        }
+    }
+}
+
+TEST(MmAllocator, ReallocGrowPreservesData)
+{
+    constexpr usize kInitial = 4;
+    constexpr usize kGrown = 8;
+
+    int* p = static_cast<int*>(mm::alloc(kInitial * sizeof(int)));
+    ASSERT_NE(p, nullptr);
+    for (int i = 0; i < static_cast<int>(kInitial); ++i)
+    {
+        p[i] = i;
+    }
+
+    int* q = static_cast<int*>(mm::realloc(p, kGrown * sizeof(int)));
+    ASSERT_NE(q, nullptr);
+    EXPECT_EQ(reinterpret_cast<uptr>(q) % mm::details::kDefaultAlignment, 0U);
+    for (int i = 0; i < static_cast<int>(kInitial); ++i)
+    {
+        EXPECT_EQ(q[i], i);
+    }
+    for (int i = static_cast<int>(kInitial); i < static_cast<int>(kGrown); ++i)
+    {
+        q[i] = i;
+        EXPECT_EQ(q[i], i);
+    }
+    mm::free(q);
+}
+
+TEST(MmAllocator, ReallocShrinkPreservesPrefix)
+{
+    constexpr usize kInitial = 8;
+    constexpr usize kShrunk = 4;
+
+    int* p = static_cast<int*>(mm::alloc(kInitial * sizeof(int)));
+    ASSERT_NE(p, nullptr);
+    for (int i = 0; i < static_cast<int>(kInitial); ++i)
+    {
+        p[i] = i;
+    }
+
+    int* q = static_cast<int*>(mm::realloc(p, kShrunk * sizeof(int)));
+    ASSERT_NE(q, nullptr);
+    EXPECT_EQ(reinterpret_cast<uptr>(q) % mm::details::kDefaultAlignment, 0U);
+    for (int i = 0; i < static_cast<int>(kShrunk); ++i)
+    {
+        EXPECT_EQ(q[i], i);
+    }
+    mm::free(q);
+}
+
+TEST(MmAllocator, ReallocNullActsLikeAlloc)
+{
+    int* p = static_cast<int*>(mm::realloc(nullptr, 32 * sizeof(int)));
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(reinterpret_cast<uptr>(p) % mm::details::kDefaultAlignment, 0U);
+    p[0] = 42;
+    EXPECT_EQ(p[0], 42);
+    mm::free(p);
+}
+
+TEST(MmAllocator, ReallocReturnsAligned)
+{
+    const usize alignments[] = { 64, 256 };
+
+    for (usize alignment : alignments)
+    {
+        void* p = mm::alloc(32, alignment);
+        ASSERT_NE(p, nullptr);
+
+        void* grown = mm::realloc(p, 128, alignment);
+        ASSERT_NE(grown, nullptr);
+        EXPECT_EQ(reinterpret_cast<uptr>(grown) % alignment, 0U);
+
+        void* shrunk = mm::realloc(grown, 16, alignment);
+        ASSERT_NE(shrunk, nullptr);
+        EXPECT_EQ(reinterpret_cast<uptr>(shrunk) % alignment, 0U);
+
+        mm::free(shrunk);
+    }
+}
+
+TEST(MmAllocator, AllocFreeBalanced)
+{
+    const i64 before = mm::getMemSize();
+    {
+        void* p = mm::alloc(1024);
+        ASSERT_NE(p, nullptr);
+        mm::free(p);
+    }
+    EXPECT_EQ(mm::getMemSize(), before);
+}
+
+TEST(MmAllocator, ReallocBalanced)
+{
+    const i64 before = mm::getMemSize();
+    {
+        int* p = static_cast<int*>(mm::alloc(4 * sizeof(int)));
+        ASSERT_NE(p, nullptr);
+        int* grown = static_cast<int*>(mm::realloc(p, 8 * sizeof(int)));
+        ASSERT_NE(grown, nullptr);
+        int* shrunk = static_cast<int*>(mm::realloc(grown, 2 * sizeof(int)));
+        ASSERT_NE(shrunk, nullptr);
+        mm::free(shrunk);
+    }
+    EXPECT_EQ(mm::getMemSize(), before);
+}
+
+TEST(MmAllocator, GetGoodSize)
+{
+    EXPECT_EQ(mm::getGoodSize(0), 0U);
+
+    const usize sizes[] = { 1, 17, 100, 4096 };
+    for (usize size : sizes)
+    {
+        EXPECT_GE(mm::getGoodSize(size), size);
+    }
+}
+
+TEST(MmAllocator, OperatorNewDeleteBalanced)
+{
+    const i64 before = mm::getMemSize();
+    {
+        int* p = new int(42);
+        ASSERT_NE(p, nullptr);
+        EXPECT_EQ(*p, 42);
+        delete p;
+    }
+    EXPECT_EQ(mm::getMemSize(), before);
+}
+
+TEST(MmAllocator, OperatorNewArrayDeleteArrayBalanced)
+{
+    const i64 before = mm::getMemSize();
+    {
+        int* p = new int[16];
+        ASSERT_NE(p, nullptr);
+        for (int i = 0; i < 16; ++i)
+        {
+            p[i] = i;
+        }
+        EXPECT_EQ(p[15], 15);
+        delete[] p;
+    }
+    EXPECT_EQ(mm::getMemSize(), before);
+}
+
+TEST(MmAllocator, OperatorNothrowNew)
+{
+    int* p = new (std::nothrow) int(7);
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(*p, 7);
+    delete p;
+
+    int* arr = new (std::nothrow) int[4];
+    ASSERT_NE(arr, nullptr);
+    arr[3] = 3;
+    EXPECT_EQ(arr[3], 3);
+    delete[] arr;
+}
+
+TEST(MmAllocator, AlignedNewDelete)
+{
+    struct alignas(64) Aligned
+    {
+        int value;
+    };
+
+    Aligned* p = new Aligned();
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(reinterpret_cast<uptr>(p) % 64, 0U);
+    p->value = 42;
+    EXPECT_EQ(p->value, 42);
+    delete p;
 }
 
 } // namespace mk
