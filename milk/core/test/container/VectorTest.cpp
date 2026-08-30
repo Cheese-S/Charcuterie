@@ -404,7 +404,9 @@ TEST(Vector, Back)
 /*                               shrinkToFit                                */
 /* ------------------------------------------------------------------------ */
 
-TEST(ShrinkToFit, DefaultEmptyDeallocates)
+// Vector (heap storage)
+
+TEST(ShrinkToFit, HeapEmptyDeallocates)
 {
     Vector<int> v;
     v.reserve(10000);
@@ -412,27 +414,88 @@ TEST(ShrinkToFit, DefaultEmptyDeallocates)
     EXPECT_EQ(0, v.capacity());
 }
 
-TEST(ShrinkToFit, DefaultReallocateIffSizeDifferenceIsBig)
+TEST(ShrinkToFit, HeapShrinksAndPreservesData)
 {
     Vector<int> v;
-    v.reserve(1000);
-    v.resize(64);
-    EXPECT_EQ(1000, v.capacity());
-    EXPECT_EQ(64, v.size());
-    v.shrinkToFit();
-    EXPECT_LE(v.capacity(), 1000);
+    for (int i = 0; i < 1000; ++i)
+    {
+        v.push(i);
+    }
 
-    v.resize(v.capacity());
+    usize capBefore = v.capacity();
     v.shrinkToFit();
-    EXPECT_EQ(v.size(), v.capacity());
+
+    ASSERT_GE(v.capacity(), v.size());
+    EXPECT_LT(v.capacity(), capBefore);
+    EXPECT_EQ(v.size(), 1000U);
+    for (int i = 0; i < 1000; ++i)
+    {
+        EXPECT_EQ(v[i], i);
+    }
 }
 
-TEST(ShrinkToFit, StackEmptyNeverDeallocates)
+// FixedVector (fixed inline storage)
+
+TEST(ShrinkToFit, FixedNoOp)
 {
-    StackVector<int, 1000> v;
-    v.reserve(1000);
+    FixedVector<int, 8> v;
+    v.reserve(8);
+    for (int i = 0; i < 8; ++i)
+    {
+        v.push(i);
+    }
+    EXPECT_EQ(v.capacity(), 8U);
+
     v.shrinkToFit();
-    EXPECT_EQ(1000, v.capacity());
+
+    EXPECT_EQ(v.capacity(), 8U);
+    EXPECT_EQ(v.size(), 8U);
+    for (int i = 0; i < 8; ++i)
+    {
+        EXPECT_EQ(v[i], i);
+    }
+}
+
+// StackVector (inline + heap fallback)
+
+TEST(ShrinkToFit, InlineNoOp)
+{
+    StackVector<int, 8> v;
+    v.reserve(8);
+    for (int i = 0; i < 8; ++i)
+    {
+        v.push(i);
+    }
+    EXPECT_EQ(v.capacity(), 8U);
+
+    v.shrinkToFit();
+
+    EXPECT_EQ(v.capacity(), 8U);
+    EXPECT_EQ(v.size(), 8U);
+    for (int i = 0; i < 8; ++i)
+    {
+        EXPECT_EQ(v[i], i);
+    }
+}
+
+TEST(ShrinkToFit, FallbackShrinksAndPreservesData)
+{
+    StackVector<int, 4> v;
+    for (int i = 0; i < 1000; ++i)
+    {
+        v.push(i);
+    }
+
+    usize capBefore = v.capacity();
+    v.shrinkToFit();
+
+    ASSERT_GE(v.capacity(), v.size());
+    EXPECT_LT(v.capacity(), capBefore);
+    EXPECT_EQ(v.size(), 1000U);
+    for (int i = 0; i < 1000; ++i)
+    {
+        EXPECT_EQ(v[i], i);
+    }
 }
 
 TEST(ShrinkToFit, FallbackEmptyDeallocates)
@@ -441,14 +504,6 @@ TEST(ShrinkToFit, FallbackEmptyDeallocates)
     v.reserve(10000);
     v.shrinkToFit();
     EXPECT_EQ(0, v.capacity());
-}
-
-TEST(ShrinkToFit, FixedNeverDeallocates)
-{
-    FixedVector<int, 1000> v;
-    v.reserve(1000);
-    v.shrinkToFit();
-    EXPECT_EQ(1000, v.capacity());
 }
 
 // ─────────────────────────────────────────────

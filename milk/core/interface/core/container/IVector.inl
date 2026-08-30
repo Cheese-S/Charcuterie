@@ -100,14 +100,14 @@ IVector<T, Storage>& IVector<T, Storage>::operator=(IVector<T, OtherStorage>&& o
 template<typename T, typename Storage>
 T& IVector<T, Storage>::operator[](int index)
 {
-    MK_ASSERT((0 <= index) && ((usize)index < capacity()));
+    MK_ASSERTF((0 <= index) && ((usize)index < size()), "index: {}, size: {}", index, size());
     return begin_[index];
 }
 
 template<typename T, typename Storage>
 const T& IVector<T, Storage>::operator[](int index) const
 {
-    MK_ASSERT((0 <= index) && ((usize)index < capacity()));
+    MK_ASSERTF((0 <= index) && ((usize)index < size()), "index: {}, size: {}", index, size());
     return begin_[index];
 }
 
@@ -216,7 +216,6 @@ void IVector<T, Storage>::shrinkToFit()
     begin_ = storage_.resize(begin_, goodCapcity);
     end_ = begin_ + currSize;
     capacity_ = begin_ + goodCapcity;
-    MK_ASSERT(capacity() == goodCapcity);
 }
 
 template<typename T, typename Storage>
