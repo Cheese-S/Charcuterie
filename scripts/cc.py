@@ -45,6 +45,10 @@ class SwitchOption(NamedTuple):
     config: str
 
 
+class BenchmarkOption(NamedTuple):
+    target: str
+
+
 def getBuildConfigs():
     return [Config.eDebug, Config.eRelease]
 
@@ -111,6 +115,7 @@ def genCMakeFile(file: Path):
     with open("CMakeLists.txt") as f:
         lines = f.readlines()
         for line in lines:
+
             if "END_GEN" in line:
                 assert foundStub, f"END_GEN does not have a corresponding BEGIN_GEN before it.{output[-1]}"
                 foundStub = False
@@ -137,6 +142,17 @@ def genCMakeFile(file: Path):
                     )
                     return
                 genTest(output, dir, libs)
+            elif "BEGIN_BENCHMARK_GEN" in line:
+                assert not foundStub, "Nested stubs is not supported"
+                output.append(f"{line}\n")
+                dir, libs = getGenBenchmarkParams(Path("."), line)
+                foundStub = True
+                if (dir == None or libs == None):
+                    logError(
+                        "Invalid BEGIN_TEST_GEN parameters, expected \"# BEGIN_TEST_GEN {dir} {lib1} {lib2} ...\""
+                    )
+                    return
+                genBenchmark(output, dir, libs)
             elif foundStub:
                 continue
             else:
@@ -199,17 +215,44 @@ add_test({testExe}
          SOURCES {file} 
          INCLUDES include interface milk
          LIBS {includeLibsStr} milk_test)
+
 """)
 
 
-# add_executable(
-#     {testExe}
-#     {file}
-# )
-#
-# target_compile_options({testExe} PUBLIC ${{cc_compile_options}})
-# target_link_libraries({testExe} PUBLIC {includeLibsStr})
-# target_include_directories({testExe} PRIVATE milk/core/include milk/test/interface)
+def getGenBenchmarkParams(root: Path,
+                          line: str) -> tuple[Path | None, list[str] | None]:
+    # Expect to be
+    # #                  [0]
+    # BEGIN_FILE_GEN     [1]
+    # dirPath            [2]
+    # link to libraries  [3...]
+    params = line.strip().split(" ")
+    if (len(params) < 3):
+        return None, None
+
+    dirPath = root / params[2]
+    libs = []
+    if (len(params) >= 4):
+        libs = params[3:]
+
+    return dirPath, libs
+
+
+def genBenchmark(dst: list[str], dir: Path, includeLibs: list[str]):
+    files = []
+    util.getFilesAtDirRecurisve(dir, "/", files,
+                                lambda filename: ".cpp" in filename,
+                                lambda dirName: "benchmark" in dirName)
+    includeLibsStr = " ".join(includeLibs)
+    for file in files:
+        testExe = f"{file.split('/')[-1][:-4]}"
+        dst.append(f"""
+add_benchmark({testExe} 
+         SOURCES {file} 
+         INCLUDES include interface milk
+         LIBS {includeLibsStr} milk_benchmark)
+
+""")
 
 
 def genCompileCmds():
@@ -276,7 +319,9 @@ def build(opt: BuildOption):
 
 
 def run(opt: RunOption):
-    selection = fuzzySelectTarget(opt.config, opt.target)
+    selection = fuzzySelectTarget(
+        opt.config, opt.target,
+        lambda name: "Test" not in name and "Benchmark" not in name)
     if selection == None:
         logError(f"Unable to find a target named {opt.target}.")
         return
@@ -336,6 +381,22 @@ def moveCompileCmds():
     shutil.copyfile(
         root / "build" / "compile_cmds" / "debug" / "compile_commands.json",
         root / "compile_commands.json")
+
+
+def benchmark(opt: BenchmarkOption):
+    selection = fuzzySelectTarget(Config.eRelease, opt.target,
+                                  lambda name: "Benchmark" in name)
+    if selection == None:
+        logError(f"Unable to find a target named {opt.target}.")
+        return
+
+    target, path = selection
+
+    if (buildTarget(Config.eRelease, target, getCpuCount(), False) != 0):
+        logError(f"Failed to build {opt.target}")
+        return
+
+    runCmd(f"{path}", "Benchmarking: ")
 
 
 def addArgParser() -> argparse.ArgumentParser:
@@ -414,7 +475,16 @@ def addArgParser() -> argparse.ArgumentParser:
                               help="choose which clangd config to use.",
                               choices=["dx", "vk"])
 
-    subparsers.add_parser("dev")
+    # ------------------------------ benchmark -----------------------------
+    benchmarkParser = subparsers.add_parser(
+        "benchmark",
+        description="benchmark specific test",
+    )
+    benchmarkParser.add_argument("-t",
+                                 "--target",
+                                 type=str,
+                                 required=True,
+                                 help=f"select which target to benchmark")
 
     return parser
 
@@ -438,5 +508,5 @@ if __name__ == "__main__":
             clean(CleanOption(args.config))
         case "switch":
             switch(SwitchOption(args.config))
-        case "dev":
-            print("")
+        case "benchmark":
+            benchmark(BenchmarkOption(args.target))

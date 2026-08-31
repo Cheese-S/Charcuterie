@@ -40,6 +40,7 @@ if (CC_CLANG_CL)
         /WX
         -Wno-deprecated
         -Wpedantic
+        -march=native
         "/clang:-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/="
     )
 
@@ -80,6 +81,25 @@ function (add_test name)
     message(STATUS "add_test ${name} ${source} ${ARG_SOURCES} ${ARG_INCLUDES} ${ARG_LIBS}")
 endfunction()
 
+function (add_benchmark name)
+    set(argPattern SOURCES INCLUDES LIBS)
+
+    cmake_parse_arguments(ARG "" "" "${argPattern}" ${ARGN})
+
+    add_executable(
+        ${name}
+        ${ARG_SOURCES}
+    )   
+    target_compile_options(${name} PUBLIC ${cc_compile_options})
+    target_link_libraries(${name} PUBLIC
+        benchmark::benchmark
+        GTest::gtest
+        GTest::gmock
+        ${ARG_LIBS})
+    target_include_directories(${name} PUBLIC ${ARG_INCLUDES})
+    message(STATUS "add_benchmark ${name} ${source} ${ARG_SOURCES} ${ARG_INCLUDES} ${ARG_LIBS}")
+endfunction()
+
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/.cmake/api/v1/query/codemodel-v2")
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/.cmake/api/v1/query")
@@ -95,6 +115,9 @@ add_subdirectory(third_party)
 
 # test
 add_subdirectory(milk/test)
+
+# benchmark
+add_subdirectory(milk/benchmark)
 
 # libs
 add_subdirectory(milk/core)
