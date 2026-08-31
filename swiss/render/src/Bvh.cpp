@@ -29,35 +29,41 @@ Bvh::Bvh(asset::ir::Ir&& ir): ir_(std::move(ir))
 
 bool Bvh::intersect(const mlm::Ray& r, f32 tMax) const
 {
+    struct DfsEntry
+    {
+        const Node& node;
+        usize       i;
+    };
+
     const asset::ir::MeshPart& part = ir_.meshes[0].parts[0];
 
-    mlm::Ray                     localR = mlm::transformRay(worldToLocal_, r);
-    StackVector<const Node*, 64> dfsStack;
+    mlm::Ray                  localR = mlm::transformRay(worldToLocal_, r);
+    StackVector<DfsEntry, 64> dfsStack;
 
-    // NOLINTNEXTLINE
-    dfsStack.push(&nodes_[0]);
+    dfsStack.push({ .node = nodes_[0], .i = 0 });
 
     mlm::PackedVec3 invD = mlm::PackedVec3(1.0f) / localR.d;
     u8              dirIsNeg[3] = { localR.d.x() < 0.0f, localR.d.y() < 0.0f, localR.d.z() < 0.0f };
 
     while (!dfsStack.empty())
     {
-        const Node* node = dfsStack.pop();
+        DfsEntry    entry = dfsStack.pop();
+        const Node& node = entry.node;
 
-        if (!mlm::rayBoundIntersection(localR, node->localBound, tMax, invD, dirIsNeg))
+        if (!mlm::rayBoundIntersection(localR, node.localBound, tMax, invD, dirIsNeg))
         {
             continue;
         }
 
-        if (!node->left && !node->right)
+        if (node.triCount)
         {
-            for (u32 i = 0; i < node->triCount; i++)
+            for (u32 i = 0; i < node.triCount; i++)
             {
-                const Tri&             tri = tris_[node->triStart + i];
+                const u32              indexStart = tris_[node.triStart + i];
                 // TODO(Cheese_S): two mem jumps. Probably not good.
-                const mlm::PackedVec3& v0 = part.positions[part.indices[tri.indexStart + 0]];
-                const mlm::PackedVec3& v1 = part.positions[part.indices[tri.indexStart + 1]];
-                const mlm::PackedVec3& v2 = part.positions[part.indices[tri.indexStart + 2]];
+                const mlm::PackedVec3& v0 = part.positions[part.indices[indexStart + 0]];
+                const mlm::PackedVec3& v1 = part.positions[part.indices[indexStart + 1]];
+                const mlm::PackedVec3& v2 = part.positions[part.indices[indexStart + 2]];
 
                 if (mlm::rayTriIntersection(localR, tMax, v0, v1, v2))
                 {
@@ -67,8 +73,8 @@ bool Bvh::intersect(const mlm::Ray& r, f32 tMax) const
             continue;
         }
 
-        dfsStack.push(node->left);
-        dfsStack.push(node->right);
+        dfsStack.push({ .node = nodes_[entry.i + 1], .i = entry.i + 1 });
+        dfsStack.push({ .node = nodes_[node.rightChildIndex], .i = node.rightChildIndex });
     }
 
     return false;
@@ -78,7 +84,9 @@ void Bvh::buildPart(const asset::ir::MeshPart& part)
 {
     MK_ASSERT((part.indices.size() % 3) == 0);
 
+    Vector<SahTri> sahTris;
     tris_.reserve(2 * part.indices.size() / 3 - 1);
+    sahTris.reserve(tris_.capacity());
 
     // NOLINTNEXTLINE(bugprone-too-small-loop-variable)
     for (u32 i = 0; i < part.indices.size(); i += 3)
@@ -87,62 +95,70 @@ void Bvh::buildPart(const asset::ir::MeshPart& part)
         const mlm::PackedVec3& v1 = part.positions[part.indices[i + 1]];
         const mlm::PackedVec3& v2 = part.positions[part.indices[i + 2]];
 
-        tris_.push({
+        sahTris.push({
             .indexStart = i,
             .centeroid = (v0 + v1 + v2) / 3.0f,
             .bound = {},
         });
 
-        tris_.back().bound.toInclude(v0);
-        tris_.back().bound.toInclude(v1);
-        tris_.back().bound.toInclude(v2);
+        sahTris.back().bound.toInclude(v0);
+        sahTris.back().bound.toInclude(v1);
+        sahTris.back().bound.toInclude(v2);
     }
 
-    // TODO(Cheese_S): we will have TLAS and BLAS. SO u16 is not good enough.
-    Bvh::Node root = { .left = nullptr,
-                       .right = nullptr,
-                       .localBound = part.localBound,
-                       .triStart = 0,
-                       .triCount = static_cast<u16>(part.indices.size() / 3) };
+    u32 triCount = part.indices.size() / 3;
+    nodes_.reserve(triCount * 2 - 1);
+    nodes_.push({
+        .localBound = part.localBound,
+        .rightChildIndex = 0,
+        .triCount = 0,
+        .axis = Axis::eX,
+    });
 
-    nodes_.reserve(root.triCount);
-    nodes_.push(root);
+    setSplitResult(nodes_[0], split(sahTris, 0, triCount), 0, triCount);
 
-    split(root);
+    for (SahTri& sahTri : sahTris)
+    {
+        tris_.push(sahTri.indexStart);
+    }
 }
 
-// NOLINTNEXTLINE(misc-no-recursion)
-void Bvh::split(Bvh::Node& parent)
+// NOLINTBEGIN(misc-no-recursion)
+std::optional<Bvh::SplitResult>
+Bvh::split(Vector<SahTri>& tris, u32 parentTriStart, u16 parentTriCount)
+// NOLINTEND(misc-no-recursion)
 {
-    MK_ASSERTF(parent.triCount >= 2, "Unexpected triCount: {}", parent.triCount);
-    MK_ASSERT(!parent.left && !parent.right);
-
-    if (parent.triCount == 2)
+    if (parentTriCount == 1)
     {
-        nodes_.push({ .left = nullptr,
-                      .right = nullptr,
-                      .localBound = tris_[parent.triStart].bound,
-                      .triStart = parent.triStart,
-                      .triCount = 1 });
-        parent.left = &nodes_.back();
-        nodes_.push({ .left = nullptr,
-                      .right = nullptr,
-                      .localBound = tris_[parent.triStart + 1].bound,
-                      .triStart = static_cast<u16>(parent.triStart + 1),
-                      .triCount = 1 });
-        parent.right = &nodes_.back();
-        return;
+        return std::nullopt;
     }
 
     mlm::Bound totalBound;
     mlm::Bound centeroidsBound;
-    for (u32 i = 0; i < parent.triCount; i++)
+    for (u32 i = 0; i < parentTriCount; i++)
     {
-        centeroidsBound.toInclude(tris_[parent.triStart + i].centeroid);
-        totalBound.toInclude(tris_[parent.triStart + i].bound);
+        centeroidsBound.toInclude(tris[parentTriStart + i].centeroid);
+        totalBound.toInclude(tris[parentTriStart + i].bound);
     }
 
     Axis axis = chooseSplitAxis(centeroidsBound);
+
+    if (parentTriCount == 2)
+    {
+        nodes_.push({
+            .localBound = tris[parentTriStart].bound,
+            .triStart = parentTriStart,
+            .triCount = 1,
+            .axis = eX,
+        });
+
+        nodes_.push({ .localBound = tris[parentTriStart + 1].bound,
+                      .triStart = parentTriStart + 1,
+                      .triCount = 1,
+                      .axis = eX });
+
+        return std::make_optional<SplitResult>(static_cast<u32>(nodes_.size() - 1), axis);
+    }
 
     // Empirically found to be the best by PBRT
     SahBin bins[kNumSahBins];
@@ -151,10 +167,10 @@ void Bvh::split(Bvh::Node& parent)
         bin.count = 0;
     }
 
-    for (u32 i = 0; i < parent.triCount; i++)
+    for (u32 i = 0; i < parentTriCount; i++)
     {
-        const Tri& tri = tris_[parent.triStart + i];
-        u8         b = findBin(centeroidsBound, tri, axis);
+        const SahTri& tri = tris[parentTriStart + i];
+        u8            b = findBin(centeroidsBound, tri, axis);
 
         SahBin& bin = bins[b];
 
@@ -226,44 +242,52 @@ void Bvh::split(Bvh::Node& parent)
 
     MK_ASSERT(minCostBin != kU8Max);
 
-    // T_intersect all tri in parent = parent.triCount
-    if (minCost >= parent.triCount)
+    // T_intersect all tri in parent.
+    if (minCost >= parentTriCount)
     {
-        return;
+        return std::nullopt;
     }
 
     MK_ASSERT(accBelow[minCostBin].count && accAbove[minCostBin].count);
 
-    std::partition(tris_.begin() + parent.triStart,
-                   tris_.begin() + parent.triStart + parent.triCount,
+    std::partition(tris.begin() + parentTriStart,
+                   tris.begin() + parentTriStart + parentTriCount,
                    [&centeroidsBound, axis, minCostBin](const auto& tri)
                    { return findBin(centeroidsBound, tri, axis) <= minCostBin; });
 
-    nodes_.push({ .left = nullptr,
-                  .right = nullptr,
-                  .localBound = accBelow[minCostBin].bound,
-                  .triStart = parent.triStart,
-                  .triCount = accBelow[minCostBin].count });
-
-    parent.left = &nodes_.back();
-
-    if (nodes_.back().triCount > 1)
+    // Recursively split left
+    usize leftChildIndex = nodes_.size();
     {
-        split(nodes_.back());
+        u16 triCount = accBelow[minCostBin].count;
+        u32 triStart = parentTriStart;
+
+        nodes_.push({
+            .localBound = accBelow[minCostBin].bound,
+            .rightChildIndex = 0,
+            .triCount = 0,
+            .axis = Axis::eX,
+        });
+
+        setSplitResult(nodes_[leftChildIndex], split(tris, triStart, triCount), triStart, triCount);
     }
 
-    nodes_.push({ .left = nullptr,
-                  .right = nullptr,
-                  .localBound = accAbove[minCostBin].bound,
-                  .triStart = static_cast<u16>(parent.triStart + accBelow[minCostBin].count),
-                  .triCount = accAbove[minCostBin].count });
-
-    parent.right = &nodes_.back();
-
-    if (nodes_.back().triCount > 1)
+    // Recursively split right
+    usize rightChildIndex = nodes_.size();
     {
-        split(nodes_.back());
+        u16 triCount = accAbove[minCostBin].count;
+        u32 triStart = parentTriStart + accBelow[minCostBin].count;
+
+        nodes_.push({ .localBound = accAbove[minCostBin].bound,
+                      .rightChildIndex = 0,
+                      .triCount = 0,
+                      .axis = Axis::eX });
+
+        setSplitResult(nodes_[rightChildIndex],
+                       split(tris, triStart, triCount),
+                       triStart,
+                       triCount);
     }
+    return std::make_optional<SplitResult>(rightChildIndex, axis);
 }
 
 Bvh::Axis Bvh::chooseSplitAxis(const mlm::Bound& bound)
@@ -282,7 +306,7 @@ Bvh::Axis Bvh::chooseSplitAxis(const mlm::Bound& bound)
     return Bvh::Axis::eZ;
 }
 
-u8 Bvh::findBin(const mlm::Bound& centeroidsBound, const Tri& tri, Axis axis)
+u8 Bvh::findBin(const mlm::Bound& centeroidsBound, const SahTri& tri, Axis axis)
 {
     MK_ASSERTF(mlm::allLessEqualThan(tri.centeroid, centeroidsBound.max()) &&
                    mlm::allGreaterEqualThan(tri.centeroid, centeroidsBound.min()),
@@ -302,6 +326,23 @@ u8 Bvh::findBin(const mlm::Bound& centeroidsBound, const Tri& tri, Axis axis)
     }
 
     return bin;
+}
+
+void Bvh::setSplitResult(Bvh::Node&                 node,
+                         std::optional<SplitResult> result,
+                         u32                        nodeTriStart,
+                         u16                        nodeTriCount)
+{
+    if (!result)
+    {
+        node.triStart = nodeTriStart;
+        node.triCount = nodeTriCount;
+        return;
+    }
+
+    MK_ASSERT(!node.triCount);
+    node.axis = result->axis;
+    node.rightChildIndex = result->rightChildIndex;
 }
 
 } // namespace mk::swiss::render

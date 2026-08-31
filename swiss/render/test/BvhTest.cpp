@@ -3,6 +3,7 @@
 
 #include <asset/import/Ir.h>
 #include <asset/import/builder/ITemplateAssetBuilder.h>
+#include <core/log/IRawLog.h>
 
 namespace mk::swiss::render
 {
@@ -14,7 +15,7 @@ struct BvhTest;
 
 namespace mk::swiss::render
 {
-struct BvhTest : ::testing::Test
+struct BvhTest: ::testing::Test
 {
     static bool isValid(const Bvh& bvh);
 
@@ -26,12 +27,19 @@ struct BvhTest : ::testing::Test
 protected:
     void SetUp() override;
 
-    UniquePtr<Bvh>   bvh_;
-    mlm::Ray         hitRay_;
-    mlm::PackedVec3  worldMax_;
+    UniquePtr<Bvh>  bvh_;
+    mlm::Ray        hitRay_;
+    mlm::PackedVec3 worldMax_;
 
 private:
-    static bool isValidRecursive(const Bvh::Node& node);
+    struct TriRange
+    {
+        u32 start;
+        u32 count;
+    };
+
+    static std::optional<TriRange>
+    validateSubtree(const StackVector<Bvh::Node, 64>& nodes, usize nodeIndex, u32 totalTriCount);
 };
 
 void BvhTest::SetUp()
@@ -57,7 +65,7 @@ void BvhTest::SetUp()
     // World-space AABB of the mesh, used to place a guaranteed miss ray.
     mlm::PackedVec3 lo = part.localBound.min();
     mlm::PackedVec3 hi = part.localBound.max();
-    mlm::Bound     worldBound;
+    mlm::Bound      worldBound;
     for (u32 i = 0; i < 8; i++)
     {
         mlm::PackedVec3 corner((i & 1) ? hi.x() : lo.x(),
@@ -77,27 +85,69 @@ bool BvhTest::isValid(const Bvh& bvh)
         return false;
     }
 
-    return isValidRecursive(bvh.nodes_[0]);
+    u32                     totalTriCount = static_cast<u32>(bvh.tris_.size());
+    std::optional<TriRange> range = validateSubtree(bvh.nodes_, 0, totalTriCount);
+    return range.has_value() && range->start == 0 && range->count == totalTriCount;
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-bool BvhTest::isValidRecursive(const Bvh::Node& node)
+std::optional<BvhTest::TriRange> BvhTest::validateSubtree(const StackVector<Bvh::Node, 64>& nodes,
+                                                          usize nodeIndex,
+                                                          u32   totalTriCount)
 {
-    if (!node.left)
+    if (nodeIndex >= nodes.size())
     {
-        return true;
+        return std::nullopt;
     }
 
-    const Bvh::Node& left = *node.left;
-    const Bvh::Node& right = *node.right;
+    const Bvh::Node& node = nodes[nodeIndex];
 
-    bool isChildValid = left.triCount + right.triCount == node.triCount &&
-                        left.triStart == node.triStart &&
-                        right.triStart == node.triStart + left.triCount &&
-                        node.localBound.doesInclude(left.localBound) &&
-                        node.localBound.doesInclude(right.localBound);
+    if (node.triCount != 0) // leaf
+    {
+        MK_RAW_LOG_DEBUG("node[{}] leaf: triStart={} triCount={} axis={}",
+                         nodeIndex,
+                         node.triStart,
+                         node.triCount,
+                         static_cast<u32>(node.axis));
 
-    return isChildValid && isValidRecursive(left) && isValidRecursive(right);
+        if (node.triStart > totalTriCount - node.triCount)
+        {
+            return std::nullopt;
+        }
+        return TriRange{ .start = node.triStart, .count = node.triCount };
+    }
+
+    // internal node
+    usize leftIndex = nodeIndex + 1;
+    usize rightIndex = node.rightChildIndex;
+
+    if (leftIndex >= nodes.size() || rightIndex <= leftIndex || rightIndex >= nodes.size())
+    {
+        return std::nullopt;
+    }
+
+    const Bvh::Node& left = nodes[leftIndex];
+    const Bvh::Node& right = nodes[rightIndex];
+
+    if (!node.localBound.doesInclude(left.localBound) ||
+        !node.localBound.doesInclude(right.localBound))
+    {
+        return std::nullopt;
+    }
+
+    std::optional<TriRange> leftRange = validateSubtree(nodes, leftIndex, totalTriCount);
+    std::optional<TriRange> rightRange = validateSubtree(nodes, rightIndex, totalTriCount);
+    if (!leftRange || !rightRange)
+    {
+        return std::nullopt;
+    }
+
+    if (rightRange->start != leftRange->start + leftRange->count)
+    {
+        return std::nullopt;
+    }
+
+    return TriRange{ .start = leftRange->start, .count = leftRange->count + rightRange->count };
 }
 
 void BvhTest::validateRecursiveCases()
@@ -107,43 +157,88 @@ void BvhTest::validateRecursiveCases()
     mlm::Bound parentBound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(3.f, 3.f, 3.f));
     mlm::Bound outsideBound(mlm::PackedVec3(5.f, 5.f, 5.f), mlm::PackedVec3(6.f, 6.f, 6.f));
 
-    auto makeLeaf = [](u32 triStart, u32 triCount, mlm::Bound bound)
+    auto makeLeaf = [](u32 triStart, u16 triCount, mlm::Bound bound)
     {
-        return Bvh::Node{ .left = nullptr, .right = nullptr, .localBound = bound, .triStart = triStart, .triCount = triCount };
+        return Bvh::Node{ .localBound = bound,
+                          .triStart = triStart,
+                          .triCount = triCount,
+                          .axis = Bvh::Axis::eX };
+    };
+
+    auto makeInternal = [](u32 rightChildIndex, mlm::Bound bound)
+    {
+        return Bvh::Node{ .localBound = bound,
+                          .rightChildIndex = rightChildIndex,
+                          .triCount = 0,
+                          .axis = Bvh::Axis::eX };
     };
 
     // Leaf is always valid.
-    EXPECT_TRUE(isValidRecursive(makeLeaf(0, 1, leafBound)));
+    {
+        StackVector<Bvh::Node, 64> nodes;
+        nodes.push(makeLeaf(0, 1, leafBound));
+        std::optional<TriRange> range = validateSubtree(nodes, 0, 5);
+        ASSERT_TRUE(range.has_value());
+        EXPECT_EQ(range->start, 0u);
+        EXPECT_EQ(range->count, 1u);
+    }
 
-    // Internal node with consistent children.
-    Bvh::Node left = makeLeaf(0, 2, leafBound);
-    Bvh::Node right = makeLeaf(2, 3, rightBound);
-    Bvh::Node parent = { .left = &left, .right = &right, .localBound = parentBound, .triStart = 0, .triCount = 5 };
-    EXPECT_TRUE(isValidRecursive(parent));
+    // Leaf whose range exceeds the tri array is invalid.
+    {
+        StackVector<Bvh::Node, 64> nodes;
+        nodes.push(makeLeaf(4, 2, leafBound));
+        EXPECT_FALSE(validateSubtree(nodes, 0, 5).has_value());
+    }
 
-    // right.triStart must equal node.triStart + left.triCount.
-    Bvh::Node rightBadStart = makeLeaf(3, 3, rightBound);
-    Bvh::Node parentBadStart = { .left = &left, .right = &rightBadStart, .localBound = parentBound, .triStart = 0, .triCount = 5 };
-    EXPECT_FALSE(isValidRecursive(parentBadStart));
+    // Internal node with continuous children.
+    {
+        StackVector<Bvh::Node, 64> nodes;
+        nodes.push(makeInternal(2, parentBound));
+        nodes.push(makeLeaf(0, 2, leafBound));
+        nodes.push(makeLeaf(2, 3, rightBound));
+        std::optional<TriRange> range = validateSubtree(nodes, 0, 5);
+        ASSERT_TRUE(range.has_value());
+        EXPECT_EQ(range->start, 0u);
+        EXPECT_EQ(range->count, 5u);
+    }
 
-    // Child triCounts must sum to the parent's.
-    Bvh::Node leftBadCount = makeLeaf(0, 3, leafBound);
-    Bvh::Node parentBadCount = { .left = &leftBadCount, .right = &right, .localBound = parentBound, .triStart = 0, .triCount = 5 };
-    EXPECT_FALSE(isValidRecursive(parentBadCount));
+    // Children must cover a continuous tri range.
+    {
+        StackVector<Bvh::Node, 64> nodes;
+        nodes.push(makeInternal(2, parentBound));
+        nodes.push(makeLeaf(0, 2, leafBound));
+        nodes.push(makeLeaf(3, 2, rightBound));
+        EXPECT_FALSE(validateSubtree(nodes, 0, 5).has_value());
+    }
 
     // Child bound must be contained by the parent's.
-    Bvh::Node leftOutside = makeLeaf(0, 2, outsideBound);
-    Bvh::Node parentBadBound = { .left = &leftOutside, .right = &right, .localBound = parentBound, .triStart = 0, .triCount = 5 };
-    EXPECT_FALSE(isValidRecursive(parentBadBound));
+    {
+        StackVector<Bvh::Node, 64> nodes;
+        nodes.push(makeInternal(2, parentBound));
+        nodes.push(makeLeaf(0, 2, outsideBound));
+        nodes.push(makeLeaf(2, 3, rightBound));
+        EXPECT_FALSE(validateSubtree(nodes, 0, 5).has_value());
+    }
+
+    // rightChildIndex out of range.
+    {
+        StackVector<Bvh::Node, 64> nodes;
+        nodes.push(makeInternal(99, parentBound));
+        nodes.push(makeLeaf(0, 2, leafBound));
+        EXPECT_FALSE(validateSubtree(nodes, 0, 5).has_value());
+    }
 }
 
 void BvhTest::validateSplitAxis()
 {
-    EXPECT_EQ(Bvh::chooseSplitAxis(mlm::Bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(3.f, 1.f, 1.f))),
+    EXPECT_EQ(Bvh::chooseSplitAxis(
+                  mlm::Bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(3.f, 1.f, 1.f))),
               Bvh::Axis::eX);
-    EXPECT_EQ(Bvh::chooseSplitAxis(mlm::Bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(1.f, 3.f, 1.f))),
+    EXPECT_EQ(Bvh::chooseSplitAxis(
+                  mlm::Bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(1.f, 3.f, 1.f))),
               Bvh::Axis::eY);
-    EXPECT_EQ(Bvh::chooseSplitAxis(mlm::Bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(1.f, 1.f, 3.f))),
+    EXPECT_EQ(Bvh::chooseSplitAxis(
+                  mlm::Bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(1.f, 1.f, 3.f))),
               Bvh::Axis::eZ);
 }
 
@@ -151,9 +246,9 @@ void BvhTest::validateFindBin()
 {
     mlm::Bound bound(mlm::PackedVec3(0.f, 0.f, 0.f), mlm::PackedVec3(12.f, 0.f, 0.f));
 
-    Bvh::Tri atMin = { .indexStart = 0, .centeroid = mlm::PackedVec3(0.f, 0.f, 0.f), .bound = {} };
-    Bvh::Tri atMid = { .indexStart = 0, .centeroid = mlm::PackedVec3(6.f, 0.f, 0.f), .bound = {} };
-    Bvh::Tri atMax = { .indexStart = 0, .centeroid = mlm::PackedVec3(12.f, 0.f, 0.f), .bound = {} };
+    Bvh::SahTri atMin = { .indexStart = 0, .centeroid = mlm::PackedVec3(0.f, 0.f, 0.f), .bound = {} };
+    Bvh::SahTri atMid = { .indexStart = 0, .centeroid = mlm::PackedVec3(6.f, 0.f, 0.f), .bound = {} };
+    Bvh::SahTri atMax = { .indexStart = 0, .centeroid = mlm::PackedVec3(12.f, 0.f, 0.f), .bound = {} };
 
     EXPECT_EQ(Bvh::findBin(bound, atMin, Bvh::Axis::eX), 0);
     EXPECT_EQ(Bvh::findBin(bound, atMid, Bvh::Axis::eX), 6);
@@ -176,7 +271,8 @@ TEST_F(BvhTest, HitsTriangleCentroid)
 
 TEST_F(BvhTest, MissFarOutside)
 {
-    mlm::Ray r{ .o = worldMax_ + mlm::PackedVec3(0.f, 0.f, 10.f), .d = mlm::PackedVec3(0.f, 0.f, 1.f) };
+    mlm::Ray r{ .o = worldMax_ + mlm::PackedVec3(0.f, 0.f, 10.f),
+                .d = mlm::PackedVec3(0.f, 0.f, 1.f) };
     EXPECT_FALSE(bvh_->intersect(r, FLT_MAX));
 }
 
