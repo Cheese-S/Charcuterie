@@ -48,7 +48,7 @@ public:
 
     usize getGoodCapacity(usize capacity)
     {
-        return mk::mm::getGoodSize(capacity * sizeof(T)) % sizeof(T);
+        return mk::mm::getGoodSize(capacity * sizeof(T)) / sizeof(T);
     }
 
     void free(T* storage)
