@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/mlm/IUtil.h>
+#include <core/mlm/IRay.h>
 
 namespace mk::swiss::render
 {

@@ -66,8 +66,9 @@ add_library(milk_core
 
     # BEGIN_FILE_GEN src/mlm
 
+	src/mlm/Bound.cpp
 	src/mlm/Mlm.cpp
-	src/mlm/Util.cpp
+	src/mlm/Ray.cpp
 
     # END_GEN
 )
@@ -103,94 +104,119 @@ add_test(MemoryTest
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(ConditionTest 
          SOURCES test/concurrency/ConditionTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(JobQueueTest 
          SOURCES test/concurrency/JobQueueTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(JobSystemTest 
          SOURCES test/concurrency/JobSystemTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(ParkingLotTest 
          SOURCES test/concurrency/ParkingLotTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(SharedMutexTest 
          SOURCES test/concurrency/SharedMutexTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(WaitGroupTest 
          SOURCES test/concurrency/WaitGroupTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(WordLockTest 
          SOURCES test/concurrency/WordLockTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(FixedSizeObjectPoolTest 
          SOURCES test/container/FixedSizeObjectPoolTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(LockFreeObjectPoolTest 
          SOURCES test/container/LockFreeObjectPoolTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(StringTest 
          SOURCES test/container/StringTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(VectorTest 
          SOURCES test/container/VectorTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(FileTest 
          SOURCES test/filesystem/FileTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(PathTest 
          SOURCES test/filesystem/PathTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(VfsTest 
          SOURCES test/filesystem/VfsTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
 add_test(BufferedWriterTest 
          SOURCES test/io/BufferedWriterTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 
 add_test(LogTest 
          SOURCES test/log/LogTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
+
+add_test(BoundTest 
+         SOURCES test/mlm/BoundTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
+
+
 add_test(MlmTest 
          SOURCES test/mlm/MlmTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
-add_test(UtilTest 
-         SOURCES test/mlm/UtilTest.cpp 
+
+add_test(RayTest 
+         SOURCES test/mlm/RayTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
+
 # END_GEN
 

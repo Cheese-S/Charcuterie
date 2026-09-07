@@ -1,6 +1,7 @@
 #pragma once
 
 #include <asset/import/Ir.h>
+#include <core/mlm/IRay.h>
 #include <optional>
 
 #ifndef MK_BVH_TEST_FRIEND

@@ -3,7 +3,7 @@
 #include <core/filesystem/IVfs.h>
 #include <core/log/ISink.h>
 #include <core/log/IFormatter.h>
-#include <core/mlm/IUtil.h>
+#include <core/mlm/IRay.h>
 #include <core/mlm/IFormatter.h>
 
 #include <asset/import/builder/ITemplateAssetBuilder.h>
@@ -87,7 +87,7 @@ Result PathTracer::makePathTracer(UniquePtr<PathTracer>& outPathTracer)
 
     outPathTracer = makeUnique<PathTracer>(std::move(vfs),
                                            std::move(logSystem),
-                                           std::move(nullptr),
+                                           std::move(jobSystem),
                                            std::move(camera),
                                            PathTracerPasskey());
 
@@ -106,6 +106,7 @@ PathTracer::PathTracer(UniquePtr<fs::IVfs>&&                  vfs,
 
 PathTracer::~PathTracer()
 {
+    // TODO(Cheese_S): this is obviously wrong. singleton shouldn't be unregistered here
     AppContext<cc::IJobSystem>::unregisterInstance();
     AppContext<log::LogSystem>::unregisterInstance();
     AppContext<fs::IVfs>::unregisterInstance();
@@ -119,7 +120,6 @@ Result PathTracer::run()
         asset::TemplateAssetBuilder::build(fs::Path("../asset/bunny.glb"), ir),
         "Failed to build asset.");
 
-    MK_LOG_DEBUG("indices size: {}", ir.meshes[0].parts[0].indices.size());
     render::Bvh bvh(std::move(ir));
 
     // mlm::Sphere     sphere = { .center = mlm::PackedVec3(0, 0, 6), .r = 2.0f };
@@ -132,30 +132,12 @@ Result PathTracer::run()
 
     for (u16 y = 0; y < resolution.y(); y++)
     {
-        MK_LOG_DEBUG("tracing: {}", y);
+        MK_LOG_INFO("y: {}", y);
         for (u16 x = 0; x < resolution.x(); x++)
         {
             mlm::Ray ray = camera_->sampleRay(x, y);
-            // if (mlm::rayTriIntersection(ray, 1000, v0, v1, v2))
-            // {
-            //     pixels.push(1.0f);
-            //     pixels.push(1.0f);
-            //     pixels.push(1.0f);
-            //     minX = std::min(minX, x);
-            //     minY = std::min(minY, y);
-            //     maxX = std::max(maxX, x);
-            //     maxY = std::max(maxY, y);
-            // }
-            // else
-            // {
-            //     pixels.push(0.0f);
-            //     pixels.push(0.0f);
-            //     pixels.push(0.0f);
-            // }
-
             if (bvh.intersect(ray, kF32Infinity))
             {
-                // MK_LOG_DEBUG("intersected!");
                 pixels.push(1.0f);
                 pixels.push(1.0f);
                 pixels.push(1.0f);
@@ -168,8 +150,6 @@ Result PathTracer::run()
             }
         }
     }
-
-    MK_LOG_DEBUG("got here");
 
     MK_LOG_ERROR_AND_RETURN_IF_NOT_OK(
         asset::exp::savePpm(fs::Path("result.ppm"), pixels, resolution.x(), resolution.y()),

@@ -1,5 +1,5 @@
 #pragma once
-#include <core/mlm/IUtil.h>
+#include <core/mlm/IBound.h>
 #include <core/container/IVector.h>
 
 namespace mk::asset::ir

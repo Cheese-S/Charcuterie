@@ -2,7 +2,7 @@
 
 #include <asset/import/Ir.h>
 #include <asset/import/builder/ITemplateAssetBuilder.h>
-#include <core/mlm/IUtil.h>
+#include <core/mlm/IRay.h>
 #include <swiss/render/Bvh.h>
 
 namespace mk::swiss::render
