@@ -6,10 +6,10 @@ project(
 )
 
 add_library(swiss_render
-    # BEGIN_FILE_GEN src/
+    # BEGIN_FILE_GEN src/render
 
-	src/Bvh.cpp
-	src/Camera.cpp
+	src/render/Bvh.cpp
+	src/render/Camera.cpp
 
     # END_GEN
 )
