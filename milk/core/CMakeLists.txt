@@ -66,6 +66,7 @@ add_library(milk_core
 
     # BEGIN_FILE_GEN src/mlm
 
+	src/mlm/Basis.cpp
 	src/mlm/Bound.cpp
 	src/mlm/Mlm.cpp
 	src/mlm/Ray.cpp
@@ -197,6 +198,12 @@ add_test(BufferedWriterTest
 
 add_test(LogTest 
          SOURCES test/log/LogTest.cpp 
+         INCLUDES include interface milk
+         LIBS milk_core milk_test)
+
+
+add_test(BasisTest 
+         SOURCES test/mlm/BasisTest.cpp 
          INCLUDES include interface milk
          LIBS milk_core milk_test)
 
