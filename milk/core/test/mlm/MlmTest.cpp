@@ -352,5 +352,36 @@ TEST(Mat4Test, RotatePreservesLength)
     float lenSqR = r.x() * r.x() + r.y() * r.y() + r.z() * r.z();
     EXPECT_F(lenSqR, lenSqV);
 }
+
+//
+// ============================================================
+// isNormalized Tests
+// ============================================================
+//
+
+TEST(MlmFreeFunctions, IsNormalizedUnitVectors)
+{
+    EXPECT_TRUE(isNormalized(vec2(1.0f, 0.0f), kEps));
+    EXPECT_TRUE(isNormalized(vec3(1.0f, 0.0f, 0.0f), kEps));
+    EXPECT_TRUE(isNormalized(vec4(1.0f, 0.0f, 0.0f, 0.0f), kEps));
+
+    EXPECT_TRUE(isNormalized(vec2(0.0f, -1.0f), kEps));
+    EXPECT_TRUE(isNormalized(vec3(0.0f, 1.0f, 0.0f), kEps));
+    EXPECT_TRUE(isNormalized(vec4(0.0f, 0.0f, 0.0f, 1.0f), kEps));
+}
+
+TEST(MlmFreeFunctions, IsNormalizedNonUnitVectors)
+{
+    EXPECT_FALSE(isNormalized(vec3(1.0f, 1.0f, 1.0f), kEps));
+    EXPECT_FALSE(isNormalized(vec3(0.0f, 0.0f, 0.0f), kEps));
+    EXPECT_FALSE(isNormalized(vec3(2.0f, 0.0f, 0.0f), kEps));
+}
+
+TEST(MlmFreeFunctions, IsNormalizedAfterNormalize)
+{
+    EXPECT_TRUE(isNormalized(normalize(vec2(3.0f, 4.0f)), kEps));
+    EXPECT_TRUE(isNormalized(normalize(vec3(1.0f, 2.0f, 3.0f)), kEps));
+    EXPECT_TRUE(isNormalized(normalize(vec4(1.0f, 1.0f, 1.0f, 1.0f)), kEps));
+}
 } // namespace mk::mlm
 MK_SIMPLE_MAIN()

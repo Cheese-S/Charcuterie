@@ -326,6 +326,12 @@ V normalize(V v)
 }
 
 template<mk::VecType V>
+bool isNormalized(V v, f32 epsilon)
+{
+    return std::abs(glm::length(v.getRaw()) - 1.0f) <= epsilon;
+}
+
+template<mk::VecType V>
 f32 dot(V a, V b)
 {
     return glm::dot(a.getRaw(), b.getRaw());

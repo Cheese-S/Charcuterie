@@ -315,6 +315,8 @@ constexpr f32 kPiOver4 = 0.78539816339744830961; // pi / 4
 template<mk::VecType V>
 V normalize(V v);
 template<mk::VecType V>
+bool isNormalized(V v, f32 epsilon);
+template<mk::VecType V>
 f32 dot(V a, V b);
 template<mk::VecType V>
 f32 distanceSq(V p, V q);
